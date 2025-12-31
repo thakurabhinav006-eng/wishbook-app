@@ -12,7 +12,10 @@ app = FastAPI(title="AI Wishing Tool API", version="1.0.0")
 
 @app.on_event("startup")
 def startup_event():
-    start_scheduler()
+    try:
+        start_scheduler()
+    except Exception as e:
+        print(f"Warning: Scheduler failed to start: {e}")
 
 # Mount static files
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
