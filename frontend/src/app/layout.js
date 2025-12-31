@@ -25,7 +25,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className} suppressHydrationWarning>
-        <GoogleOAuthProvider clientId="1024660950963-qutq4kf92fk53r2lgss6akr6dcsvb4ui.apps.googleusercontent.com">
+        <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "1024660950963-qutq4kf92fk53r2lgss6akr6dcsvb4ui.apps.googleusercontent.com"}>
           <AuthProvider>
             {children}
           </AuthProvider>
