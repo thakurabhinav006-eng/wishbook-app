@@ -23,7 +23,7 @@ export default function WishForm({ onGenerate, loading }) {
 
 
     useEffect(() => {
-        fetch('http://localhost:8000/api/contacts')
+        fetch(getApiUrl('/api/contacts'))
             .then(res => res.json())
             .then(data => setContacts(data))
             .catch(err => console.error(err));
