@@ -50,7 +50,7 @@ const NavItem = ({ id, icon: Icon, label, activeTab, isMobile }) => {
     );
 };
 
-export default function Sidebar({ mobileOpen, setMobileOpen }) {
+const SidebarContent = ({ mobileOpen, setMobileOpen }) => {
     const searchParams = useSearchParams();
     const activeTab = searchParams.get('tab') || 'overview'; // Default to overview
     const { user, logout } = useAuth();
@@ -140,5 +140,13 @@ export default function Sidebar({ mobileOpen, setMobileOpen }) {
                 </div>
             </aside>
         </>
+    );
+}
+
+export default function Sidebar(props) {
+    return (
+        <React.Suspense fallback={<div className="hidden md:flex fixed z-30 w-72 h-screen bg-[#05050A]/80 backdrop-blur-xl border-r border-white/5" />}>
+            <SidebarContent {...props} />
+        </React.Suspense>
     );
 }
