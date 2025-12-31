@@ -25,7 +25,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
-const Dashboard = () => {
+const DashboardContent = () => {
     const searchParams = useSearchParams();
     const activeTab = searchParams.get('tab') || 'overview';
     
@@ -297,6 +297,18 @@ const Dashboard = () => {
             </AnimatePresence>
         </div>
     );
+};
+
+const Dashboard = () => {
+  return (
+    <React.Suspense fallback={
+        <div className="min-h-[60vh] flex items-center justify-center">
+             <Wand2 className="w-10 h-10 text-purple-400 animate-pulse" />
+        </div>
+    }>
+      <DashboardContent />
+    </React.Suspense>
+  );
 };
 
 export default Dashboard;
