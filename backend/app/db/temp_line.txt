@@ -1,0 +1,1 @@
+    is_active = Column(Integer, default=1) # 0=Inactive, 1=Active
