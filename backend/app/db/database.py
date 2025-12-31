@@ -4,7 +4,20 @@ from sqlalchemy.orm import sessionmaker
 
 import os
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Vercel Postgres compatibility
+if not SQLALCHEMY_DATABASE_URL:
+    # Try Vercel's default env var
+    SQLALCHEMY_DATABASE_URL = os.getenv("POSTGRES_URL")
+
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    # Fix protocol for SQLAlchemy
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if not SQLALCHEMY_DATABASE_URL:
+    # Local fallback
+    SQLALCHEMY_DATABASE_URL = "sqlite:///./sql_app.db"
 
 connect_args = {}
 if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
