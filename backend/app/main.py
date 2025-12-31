@@ -1,9 +1,3 @@
-import sys
-import os
-
-# Add the parent directory (backend/) to sys.path so 'app' module can be imported
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
