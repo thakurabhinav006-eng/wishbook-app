@@ -2,13 +2,10 @@
     "name": "wishbook-root",
     "version": "1.0.1",
     "scripts": {
-        "build": "cd frontend && npm install && npm run build && cp -r .next ../.next && cp -r public ../public"
+        "build": "cd frontend && npm install && npm run build"
     },
     "private": true,
     "engines": {
         "node": "20.x"
-    },
-    "devDependencies": {
-        "next": "^14.0.0"
     }
 }
