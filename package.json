@@ -1,0 +1,11 @@
+{
+    "name": "wishbook-root",
+    "version": "1.0.0",
+    "scripts": {
+        "build": "cd frontend && npm install && npm run build"
+    },
+    "private": true,
+    "engines": {
+        "node": "18.x"
+    }
+}
