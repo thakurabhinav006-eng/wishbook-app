@@ -4,11 +4,18 @@ from sqlalchemy.orm import sessionmaker
 
 import os
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./sql_app.db")
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# User requested strictly MySQL, no SQLite fallback.
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not SQLALCHEMY_DATABASE_URL:
+    raise ValueError("DATABASE_URL is not set. Please check your .env file. SQLite fallback is disabled.")
 
 connect_args = {}
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+# SQLite specific args removed as we are strictly using MySQL/Postgres now.
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args=connect_args

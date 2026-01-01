@@ -1,0 +1,16 @@
+{
+    "rewrites": [
+        {
+            "source": "/api/:path*",
+            "destination": "/backend/api/index.py"
+        },
+        {
+            "source": "/docs",
+            "destination": "/backend/api/index.py"
+        },
+        {
+            "source": "/openapi.json",
+            "destination": "/backend/api/index.py"
+        }
+    ]
+}

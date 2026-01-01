@@ -16,3 +16,4 @@ cachetools
 psutil
 pymysql
 
+firebase-admin

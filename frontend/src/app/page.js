@@ -711,7 +711,7 @@ export default function LandingPage() {
                             
                             <h1 className="text-5xl md:text-7xl font-bold leading-[1.1] tracking-tight">
                                 <motion.span 
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={{ opacity: 1, y: 0 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.8, ease: "easeOut" }}
                                     className="block mb-2 bg-clip-text text-transparent bg-gradient-to-br from-white via-white to-gray-400"
@@ -719,7 +719,7 @@ export default function LandingPage() {
                                     Magic in Every Wish
                                 </motion.span>
                                 <motion.span 
-                                    initial={{ opacity: 0, y: 20 }}
+                                    initial={{ opacity: 1, y: 0 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
                                     className="block bg-clip-text text-transparent bg-gradient-to-br from-purple-400 via-pink-400 to-red-400"
@@ -729,7 +729,7 @@ export default function LandingPage() {
                             </h1>
 
                             <motion.p 
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 1, y: 0 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.6 }}
                                 className="text-xl text-gray-400 max-w-lg leading-relaxed"
@@ -738,7 +738,7 @@ export default function LandingPage() {
                             </motion.p>
                             
                             <motion.div 
-                                initial={{ opacity: 0, y: 20 }}
+                                initial={{ opacity: 1, y: 0 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.8 }}
                                 className="flex items-center space-x-4"

@@ -1,3 +1,4 @@
+from typing import Optional
 import os
 from pydantic_settings import BaseSettings
 
@@ -6,6 +7,9 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
     GROQ_MODEL: str = "llama-3.1-8b-instant"
+    
+    # Database
+    DATABASE_URL: Optional[str] = None
     
     # Email Settings
     SMTP_HOST: str = "smtp.gmail.com"
@@ -18,6 +22,9 @@ class Settings(BaseSettings):
     TWILIO_ACCOUNT_SID: str = ""
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_WHATSPP: str = "whatsapp:+14155238886"
+
+    # Firebase Settings
+    FIREBASE_STORAGE_BUCKET: str = "wishing-tool-85053.appspot.com"
 
     # Auth Settings
     SECRET_KEY: str = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7" # Openssl rand -hex 32

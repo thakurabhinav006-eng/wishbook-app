@@ -661,24 +661,23 @@ async def upload_avatar(
     if file.content_type not in valid_types:
         raise HTTPException(status_code=400, detail="Invalid file type")
     
-    # Create unique filename
-    ext = file.filename.split(".")[-1]
-    filename = f"{current_user.id}_{uuid.uuid4()}.{ext}"
-    file_path = f"uploads/{filename}"
-    
-    # Ensure directory exists
-    os.makedirs("uploads", exist_ok=True)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    # Update DB
-    db_user = db.query(User).filter(User.id == current_user.id).first()
-    # In prod, this would be a full URL
-    db_user.profile_photo_url = f"/uploads/{filename}"
-    db.commit()
-    
-    return {"url": db_user.profile_photo_url}
+    # Upload to Firebase
+    try:
+        from app.core.firebase import upload_file
+        # Create a clean filename for firebase (user_id/uuid.ext)
+        public_url = upload_file(
+            file.file, 
+            descriptor=f"avatars/{current_user.id}/{filename}", 
+            content_type=file.content_type
+        )
+        # Update DB
+        db_user = db.query(User).filter(User.id == current_user.id).first()
+        db_user.profile_photo_url = public_url
+        db.commit()
+        return {"url": public_url}
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image")
 
 @router.post("/upload-media")
 async def upload_media(
@@ -691,18 +690,18 @@ async def upload_media(
     if file.content_type not in valid_types:
         raise HTTPException(status_code=400, detail="Invalid file type")
     
-    # Create unique filename
-    ext = file.filename.split(".")[-1]
-    filename = f"media_{current_user.id}_{uuid.uuid4()}.{ext}"
-    file_path = f"uploads/{filename}"
-    
-    # Ensure uploads dir exists
-    os.makedirs("uploads", exist_ok=True)
-
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    return {"url": f"/uploads/{filename}"}
+    # Upload to Firebase
+    try:
+        from app.core.firebase import upload_file
+        public_url = upload_file(
+            file.file, 
+            descriptor=f"wishes/{current_user.id}/{filename}", 
+            content_type=file.content_type
+        )
+        return {"url": public_url}
+    except Exception as e:
+        print(f"Upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload media")
 
 @router.post("/auth/forgot-password")
 async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):

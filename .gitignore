@@ -26,3 +26,7 @@ sql_app.db
 # IDE
 .vscode/
 .idea/
+
+# Firebase Credentials
+firebase_key.json
+backend/firebase_key.json

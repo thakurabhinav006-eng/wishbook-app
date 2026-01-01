@@ -6,7 +6,8 @@ from app.db.database import Base
 from app.db import models
 
 # 1. Configuration
-SQLITE_URL = "sqlite:///./sql_app.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SQLITE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'sql_app.db')}"
 # Usage: MYSQL_URL=mysql+pymysql://user:pass@host/dbname python migrate_sqlite_to_mysql.py
 
 def migrate():
@@ -43,6 +44,9 @@ def migrate():
         models.ScheduledWish
     ]
 
+    # ID Mapping for re-assigned users (old_id -> new_id)
+    id_map = {}
+
     try:
         for model in models_to_migrate:
             table_name = model.__tablename__
@@ -67,6 +71,20 @@ def migrate():
                 
                 # Check if exists (upsert logic simple: look up by ID)
                 exists = mysql_session.query(model).filter(model.id == record.id).first()
+                
+                # Special check for User model to avoid duplicate email error
+                if model.__name__ == 'User' and not exists:
+                    email_exists = mysql_session.query(model).filter(model.email == record.email).first()
+                    if email_exists:
+                        print(f"Skipping duplicate user email: {record.email}. Mapping old ID {record.id} -> new ID {email_exists.id}")
+                        id_map[record.id] = email_exists.id
+                        exists = True
+                
+                # Apply ID mapping for child tables (Contact, ScheduledWish)
+                if hasattr(record, 'user_id') and record.user_id in id_map:
+                    print(f"   ⟳ Remapping record user_id {record.user_id} -> {id_map[record.user_id]}")
+                    record.user_id = id_map[record.user_id]
+
                 if not exists:
                     # Add to target session
                     mysql_session.add(record)

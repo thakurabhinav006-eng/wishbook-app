@@ -70,7 +70,7 @@ export default function LoginPage() {
             <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-16 relative">
                 <div className="relative z-10 space-y-8">
                     <motion.div 
-                        initial={{ opacity: 0, x: -50 }}
+                        initial={{ opacity: 1, x: 0 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8 }}
                         className="flex items-center"
@@ -82,7 +82,7 @@ export default function LoginPage() {
                     </motion.div>
 
                     <motion.p 
-                        initial={{ opacity: 0, x: -50 }}
+                        initial={{ opacity: 1, x: 0 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
                         className="text-xl text-gray-300 max-w-lg leading-relaxed"
@@ -92,7 +92,7 @@ export default function LoginPage() {
                     </motion.p>
                     
                     <motion.div 
-                        initial={{ opacity: 0, y: 50 }}
+                        initial={{ opacity: 1, y: 0 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.4 }}
                         className="grid grid-cols-2 gap-4 max-w-sm"
@@ -123,7 +123,7 @@ export default function LoginPage() {
             {/* Right Side: Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-black/20 backdrop-blur-sm relative">
                 <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
+                    initial={{ opacity: 1, scale: 1 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
                     className="glass-card w-full max-w-md p-8 md:p-10 rounded-3xl shadow-2xl border border-white/10"
