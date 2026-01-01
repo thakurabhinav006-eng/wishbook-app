@@ -1,6 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isDev) return [];
+    
     return [
       {
         source: '/api/:path*',
