@@ -6,22 +6,27 @@ export function cn(...inputs) {
 }
 
 export const getApiUrl = (path) => {
-    // In production (Vercel), we want to use relative paths so requests go through the same domain
-    // and are handled by the Rewrites or Vercel config.
-    // If NEXT_PUBLIC_API_URL is set, use that.
-    
+    // If it's a full URL, return as is
     if (path.startsWith('http')) return path;
 
-    const base = process.env.NEXT_PUBLIC_API_URL || '';
-    
-    // If no env var and we are on client, use relative path (empty base)
-    // If server-side (build time), we might need a full URL if not using fetch with relative support,
-    // but Next.js fetch supports relative if configured or if this is client component.
-    
-    // Fallback for purely local dev without env var:
-    if (!base && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-         return `http://localhost:8000${path.startsWith('/') ? '' : '/'}${path}`;
+    // For file uploads or other static assets, we might want the full backend URL if not proxied
+    // But since we have a proxy for /uploads in next.config.mjs, relative is best.
+
+    // CRITICAL FIX: Always use relative paths for /api calls on the client.
+    // This forces the request to go through the Next.js Rewrite Proxy (next.config.mjs).
+    // Browser -> Next.js (Same Origin) -> Backend (Server-to-Server).
+    // This bypasses CORS entirely.
+    if (path.startsWith('/api') || path.startsWith('/uploads')) {
+        // If we are on the server (SSR), we need the full URL.
+        if (typeof window === 'undefined') {
+             const base = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
+             return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
+        }
+        // Client Side -> Relative
+        return path;
     }
 
+    // Default fallback
+    const base = process.env.NEXT_PUBLIC_API_URL || '';
     return `${base}${path.startsWith('/') ? '' : '/'}${path}`;
 };
