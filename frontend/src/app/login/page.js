@@ -49,12 +49,19 @@ export default function LoginPage() {
                 body: formData,
             });
 
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse JSON:", text);
+                throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
+            }
+
             if (!response.ok) {
-                const data = await response.json();
                 throw new Error(data.detail || 'Login failed');
             }
 
-            const data = await response.json();
             login(data.access_token);
             router.push('/dashboard');
         } catch (err) {
