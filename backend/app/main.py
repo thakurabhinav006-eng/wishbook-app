@@ -31,24 +31,32 @@ app = FastAPI(title="AI Wishing Tool API", version="1.0.0", lifespan=lifespan) #
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # CORS Configuration
-# CORS Configuration
-origins = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:8000",
-    # Add your production frontend domains here
-    "https://wishbook-frontend.vercel.app",
-    "https://wishbook-frontend-*.vercel.app" # Wildcard attempt 1 (not standard but useful to comment)
-]
+# Custom CORS Middleware to allow ANY Vercel Preview URL
+from starlette.middleware.base import BaseHTTPMiddleware
+from fastapi import Request, Response
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://wishbook-frontend.*\.vercel\.app", # Allow all vercel previews
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class AllowAllMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            response = Response()
+        else:
+            try:
+                response = await call_next(request)
+            except Exception as e:
+                print(f"Unhandled Backend Error: {e}")
+                response = Response("Internal Server Error", status_code=500)
+
+        origin = request.headers.get("origin")
+        if origin:
+            # Echo the origin back to satisfy browser security
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "*"
+        
+        return response
+
+app.add_middleware(AllowAllMiddleware)
 
 # Include Routers
 app.include_router(endpoints.router, prefix="/api")
