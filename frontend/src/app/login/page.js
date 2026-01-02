@@ -121,12 +121,12 @@ export default function LoginPage() {
             </div>
 
             {/* Right Side: Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-black/20 backdrop-blur-sm relative">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 bg-black/20 backdrop-blur-sm relative">
                 <motion.div 
                     initial={{ opacity: 1, scale: 1 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="glass-card w-full max-w-md p-8 md:p-10 rounded-3xl shadow-2xl border border-white/10"
+                    className="glass-card w-full max-w-md p-6 md:p-10 rounded-3xl shadow-2xl border border-white/10"
                 >
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>

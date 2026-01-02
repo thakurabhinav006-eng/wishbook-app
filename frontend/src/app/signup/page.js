@@ -155,12 +155,12 @@ const Signup = () => {
             </div>
 
             {/* Right Side: Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-black/20 backdrop-blur-md">
+            <div className="w-full lg:w-1/2 flex items-center justify-center p-4 md:p-8 bg-black/20 backdrop-blur-md">
                 <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.5 }}
-                    className="glass-card w-full max-w-md p-8 md:p-10 rounded-3xl border-t-4 border-t-purple-500 shadow-2xl"
+                    className="glass-card w-full max-w-md p-6 md:p-10 rounded-3xl border-t-4 border-t-purple-500 shadow-2xl"
                 >
                     <div className="text-center mb-8">
                         <h2 className="text-3xl font-bold text-white mb-2">Create Account</h2>
@@ -204,7 +204,7 @@ const Signup = () => {
                     {/* Plan Selection */}
                     <div className="mb-8">
                         <label className="text-sm font-medium text-gray-300 ml-1 mb-3 block">Select a Plan</label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {[
                                 { id: 'free', name: 'Free', price: '₹0', color: 'from-gray-500 to-slate-600' },
                                 { id: 'starter', name: 'Starter', price: '₹499', color: 'from-blue-500 to-indigo-600' },
