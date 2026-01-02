@@ -46,15 +46,52 @@ app.include_router(endpoints.router, prefix="/api")
 async def health_check():
     try:
         from sqlalchemy import text, inspect
+        from sqlalchemy.orm import Session
+        from app.db.models import User
+        from app.auth import get_password_hash
+        
         # Attempt to connect to the database
         inspector = inspect(engine)
         tables = inspector.get_table_names()
         
-        # Also run a simple query to ensure connection is active
+        admin_status = "unknown"
+        
+        # Bootstrap Admin User
         with engine.connect() as connection:
-            connection.execute(text("SELECT 1"))
-            
-        return {"status": "ok", "database": "connected", "tables": tables}
+            # We need a session for ORM operations, but for quick hack we can use the engine/connection 
+            # or better, use the SessionLocal
+            from app.db.database import SessionLocal
+            db = SessionLocal()
+            try:
+                user = db.query(User).filter(User.email == "admin@admin.com").first()
+                if not user:
+                    print("Creating Admin User...")
+                    new_user = User(
+                        email="admin@admin.com",
+                        password_hash=get_password_hash("password123"),
+                        full_name="Admin User",
+                        role="admin",
+                        subscription_plan="premium",
+                        is_active=1,
+                        terms_accepted=1
+                    )
+                    db.add(new_user)
+                    db.commit()
+                    admin_status = "created"
+                else:
+                    admin_status = "exists"
+            except Exception as e:
+                print(f"Admin Bootstrap Error: {e}")
+                admin_status = f"error: {str(e)}"
+            finally:
+                db.close()
+
+        return {
+            "status": "ok", 
+            "database": "connected", 
+            "tables": tables,
+            "admin_user": admin_status
+        }
     except Exception as e:
         print(f"Health Check DB Error: {e}")
         return {"status": "error", "database": "disconnected", "detail": str(e)}
