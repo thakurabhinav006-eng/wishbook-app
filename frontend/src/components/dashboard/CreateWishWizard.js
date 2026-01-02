@@ -598,4 +598,3 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
         </div>
     );
 }
-```
