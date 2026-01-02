@@ -73,8 +73,16 @@ const Signup = () => {
                 }),
             });
 
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error("Failed to parse JSON:", text);
+                throw new Error(`Server returned ${response.status}: ${text.substring(0, 100)}...`);
+            }
+
             if (!response.ok) {
-                const data = await response.json();
                 let errorMessage = 'Signup failed';
                 if (data.detail) {
                     if (Array.isArray(data.detail)) {
@@ -86,7 +94,6 @@ const Signup = () => {
                 throw new Error(errorMessage);
             }
 
-            const data = await response.json();
             login(data.access_token);
             router.push('/dashboard');
         } catch (err) {
