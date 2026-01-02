@@ -1,25 +1,25 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    const isDev = process.env.NODE_ENV !== 'production';
-    if (!isDev) return [];
+    // In dev, defaults to localhost. In prod, uses the environment variable.
+    const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
     
     return [
       {
         source: '/api/:path*',
-        destination: 'http://127.0.0.1:8000/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
       },
       {
         source: '/docs',
-        destination: 'http://127.0.0.1:8000/docs',
+        destination: `${backendUrl}/docs`,
       },
       {
         source: '/openapi.json',
-        destination: 'http://127.0.0.1:8000/openapi.json',
+        destination: `${backendUrl}/openapi.json`,
       },
       {
          source: '/uploads/:path*',
-         destination: 'http://127.0.0.1:8000/uploads/:path*',
+         destination: `${backendUrl}/uploads/:path*`,
       }
     ]
   },
