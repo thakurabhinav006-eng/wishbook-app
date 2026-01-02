@@ -17,3 +17,5 @@ psutil
 pymysql
 
 firebase-admin
+firebase-admin
+cryptography
