@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Trigger redeploy for env vars
   async rewrites() {
     // In dev, defaults to localhost. In prod, uses the environment variable.
     const backendUrl = process.env.BACKEND_URL || 'http://127.0.0.1:8000';
