@@ -28,9 +28,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="AI Wishing Tool API", version="1.0.0", lifespan=lifespan) # Added lifespan to FastAPI app
 
 # Mount static files
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-
-# CORS Configuration
 # Custom CORS Middleware to allow ANY Vercel Preview URL
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, Response
@@ -38,21 +35,26 @@ from fastapi import Request, Response
 class AllowAllMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.method == "OPTIONS":
-            response = Response()
+            response = Response(status_code=200)
         else:
             try:
                 response = await call_next(request)
             except Exception as e:
                 print(f"Unhandled Backend Error: {e}")
-                response = Response("Internal Server Error", status_code=500)
+                response = Response(content="Internal Server Error", status_code=500)
 
         origin = request.headers.get("origin")
         if origin:
-            # Echo the origin back to satisfy browser security
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
             response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-            response.headers["Access-Control-Allow-Headers"] = "*"
+            
+            # Echo requested headers to support all headers with credentials
+            requested_headers = request.headers.get("access-control-request-headers")
+            if requested_headers:
+                response.headers["Access-Control-Allow-Headers"] = requested_headers
+            else:
+                response.headers["Access-Control-Allow-Headers"] = "*"
         
         return response
 
