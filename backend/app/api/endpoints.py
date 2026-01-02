@@ -500,6 +500,7 @@ class ScheduleRequest(BaseModel):
     # Message & Template Fields
     media_url: Optional[str] = None
     template_id: Optional[str] = None
+    generated_wish: Optional[str] = None # Support for pre-generated previews
 
 class ContactBase(BaseModel):
     name: str
@@ -826,7 +827,8 @@ async def schedule_wish(
             reminder_days_before=request.reminder_days_before,
             auto_send=request.auto_send,
             media_url=request.media_url,
-            template_id=request.template_id
+            template_id=request.template_id,
+            generated_wish=request.generated_wish
         )
         db.add(new_wish)
         db.commit()

@@ -434,6 +434,40 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
     const handleNext = () => setStep(prev => prev + 1);
     const handleBack = () => setStep(prev => prev - 1);
 
+    const [generating, setGenerating] = useState(false);
+
+    const handleGeneratePreview = async () => {
+        setGenerating(true);
+        try {
+            const res = await fetch(getApiUrl('/api/generate'), {
+                method: 'POST',
+                headers: {
+                     'Content-Type': 'application/json',
+                     'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    occasion: formData.occasion,
+                    recipient_name: formData.recipient_name,
+                    tone: formData.tone,
+                    extra_details: formData.extra_details,
+                    length: formData.length
+                })
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                handleChange('generated_wish', data.wish);
+                handleNext();
+            } else {
+                console.error("Failed to generate preview");
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setGenerating(false);
+        }
+    };
+
     const handleSubmit = async () => {
         onGenerate(formData);
     };
@@ -459,7 +493,50 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
                         {step === 0 && <StepWho contacts={contacts} formData={formData} handleChange={handleChange} toggleContact={toggleContact} />}
                         {step === 1 && <StepEvent formData={formData} handleChange={handleChange} />}
                         {step === 2 && <StepMessage formData={formData} handleChange={handleChange} handleFileUpload={handleFileUpload} uploading={uploading} />}
-                        {step === 3 && <StepPreview formData={formData} />}
+            {step === 3 && (
+                            <div className="space-y-6 text-center">
+                                <h3 className="text-2xl font-bold text-white mb-2">Ready to Schedule?</h3>
+                                <p className="text-gray-400 text-sm">Review and edit your wish before scheduling.</p>
+
+                                <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-left space-y-4">
+                                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                        <span className="text-gray-400 text-sm">To:</span>
+                                        <span className="text-white font-medium">{formData.recipient_name || "Recipient"}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                                        <span className="text-gray-400 text-sm">Event:</span>
+                                        <span className="text-white font-medium">{formData.event_name} ({formData.scheduled_time?.split('T')[0]})</span>
+                                    </div>
+                                    
+                                    <div className="pt-2">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <p className="text-xs text-gray-500 uppercase tracking-widest">Message Preview</p>
+                                            <button 
+                                                onClick={() => setStep(2)} // Go back to regenerate parameters
+                                                className="text-xs text-purple-400 hover:text-purple-300"
+                                            >
+                                                Regenerate
+                                            </button>
+                                        </div>
+                                        <textarea 
+                                            value={formData.generated_wish || ""}
+                                            onChange={(e) => handleChange('generated_wish', e.target.value)}
+                                            className="w-full p-4 bg-black/20 rounded-xl border border-white/5 text-gray-300 text-sm min-h-[120px] focus:outline-none focus:border-purple-500 transition-colors resize-none"
+                                            placeholder="Your magical wish will appear here..."
+                                        />
+                                    </div>
+
+                                    {formData.media_url && (
+                                        <div className="pt-2">
+                                            <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Attachment</p>
+                                            <div className="relative aspect-video rounded-xl overflow-hidden border border-white/10 bg-black/40">
+                                                <img src={getApiUrl(formData.media_url)} alt="Attachment" className="w-full h-full object-contain" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                  </AnimatePresence>
 
@@ -467,7 +544,7 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
                     {step > 0 ? (
                         <button 
                             onClick={handleBack}
-                            disabled={loading}
+                            disabled={loading || generating}
                             className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
                         >
                             <ArrowLeft className="w-4 h-4" />
@@ -478,13 +555,26 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
                     )}
 
                     {step < steps.length - 1 ? (
-                        <button 
-                            onClick={handleNext}
-                            className="flex items-center space-x-2 bg-white text-black px-6 py-3 rounded-xl font-bold hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all"
-                        >
-                            <span>Next Step</span>
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
+                        step === 2 ? (
+                            <button 
+                                onClick={handleGeneratePreview}
+                                disabled={generating}
+                                className={`flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-bold hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all ${
+                                    generating ? 'opacity-75 cursor-not-allowed' : ''
+                                }`}
+                            >
+                                {generating ? <Sparkles className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                <span>{generating ? 'Magic in progress...' : 'Generate Preview'}</span>
+                            </button>
+                        ) : (
+                            <button 
+                                onClick={handleNext}
+                                className="flex items-center space-x-2 bg-white text-black px-6 py-3 rounded-xl font-bold hover:scale-105 hover:shadow-[0_0_20px_rgba(255,255,255,0.3)] transition-all"
+                            >
+                                <span>Next Step</span>
+                                <ArrowRight className="w-4 h-4" />
+                            </button>
+                        )
                     ) : (
                         <button 
                             onClick={handleSubmit}
@@ -497,7 +587,7 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
                                 <Sparkles className="w-5 h-5 animate-spin" />
                             ) : (
                                 <>
-                                    <span>Schedule Wish</span>
+                                    <span>Confirm Schedule</span>
                                     <Sparkles className="w-5 h-5" />
                                 </>
                             )}
@@ -508,3 +598,4 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
         </div>
     );
 }
+```
