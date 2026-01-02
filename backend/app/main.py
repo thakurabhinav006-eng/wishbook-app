@@ -31,16 +31,20 @@ app = FastAPI(title="AI Wishing Tool API", version="1.0.0", lifespan=lifespan) #
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # CORS Configuration
+# CORS Configuration
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
-    "*"
+    # Add your production frontend domains here
+    "https://wishbook-frontend.vercel.app",
+    "https://wishbook-frontend-*.vercel.app" # Wildcard attempt 1 (not standard but useful to comment)
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://wishbook-frontend.*\.vercel\.app", # Allow all vercel previews
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
