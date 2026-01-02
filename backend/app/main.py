@@ -45,11 +45,16 @@ app.include_router(endpoints.router, prefix="/api")
 @app.get("/health")
 async def health_check():
     try:
-        from sqlalchemy import text
+        from sqlalchemy import text, inspect
         # Attempt to connect to the database
+        inspector = inspect(engine)
+        tables = inspector.get_table_names()
+        
+        # Also run a simple query to ensure connection is active
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        return {"status": "ok", "database": "connected"}
+            
+        return {"status": "ok", "database": "connected", "tables": tables}
     except Exception as e:
         print(f"Health Check DB Error: {e}")
         return {"status": "error", "database": "disconnected", "detail": str(e)}
