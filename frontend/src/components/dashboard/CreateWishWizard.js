@@ -598,3 +598,5 @@ export default function CreateWishWizard({ onGenerate, loading, initialData = {}
         </div>
     );
 }
+
+// Trigger Vercel Deploy: Force update for Wand2 fix
