@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../lib/utils';
-import { Plus, Upload, User, Search, Filter } from 'lucide-react';
 import ContactDetailsModal from './ContactDetailsModal';
 import BulkImportModal from './BulkImportModal';
 import ContactFormModal from './ContactFormModal';
-import { Pencil } from 'lucide-react';
-
+import { Plus, Upload, User, Search, Filter, Pencil, X } from 'lucide-react';
 import useSWR from 'swr';
 
 const fetcher = ([url, token]) => fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json());
