@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, User, Calendar, MessageSquare, Mail, Phone, ArrowRight, ArrowLeft, Send, CheckCircle, Smartphone, Users, Paperclip, X, Image as ImageIcon, Eye } from 'lucide-react';
+import { Sparkles, User, Calendar, MessageSquare, Mail, Phone, ArrowRight, ArrowLeft, Send, CheckCircle, Smartphone, Users, Paperclip, X, Image as ImageIcon, Eye, Wand2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { getApiUrl } from '@/lib/utils';
 import SmartCalendar from '../SmartCalendar';
