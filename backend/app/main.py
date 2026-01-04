@@ -95,3 +95,61 @@ async def health_check():
     except Exception as e:
         print(f"Health Check DB Error: {e}")
         return {"status": "error", "database": "disconnected", "detail": str(e)}
+
+@app.get("/api/seed-plans")
+async def seed_plans_endpoint():
+    try:
+        from app.db.database import SessionLocal
+        from app.db.models import SubscriptionPlan
+        import json
+        
+        db = SessionLocal()
+        try:
+            # Check if plans exist
+            existing_plans = db.query(SubscriptionPlan).count()
+            if existing_plans > 0:
+                return {"status": "skipped", "message": "Plans already exist"}
+
+            print("Seeding default subscription plans...")
+            
+            plans = [
+                 {
+                    "name": "Free",
+                    "price": 0,
+                    "contact_limit": 5,
+                    "message_limit": 5,
+                    "ai_limit": 5,
+                    "features": json.dumps(["Basic Templates", "5 Contacts", "5 AI Wishes/Month"])
+                },
+                {
+                    "name": "Starter",
+                    "price": 499, # $4.99
+                    "contact_limit": 50,
+                    "message_limit": 50,
+                    "ai_limit": 50,
+                    "features": json.dumps(["Premium Templates", "50 Contacts", "50 AI Wishes/Month", "Email Support"])
+                },
+                {
+                    "name": "Premium",
+                    "price": 999, # $9.99
+                    "contact_limit": 999999,
+                    "message_limit": 999999,
+                    "ai_limit": 999999,
+                    "features": json.dumps(["All Templates", "Unlimited Contacts", "Unlimited AI Wishes", "Priority Support", "Early Access"])
+                }
+            ]
+
+            for plan_data in plans:
+                plan = SubscriptionPlan(**plan_data)
+                db.add(plan)
+            
+            db.commit()
+            return {"status": "success", "message": "Successfully seeded 3 plans"}
+            
+        except Exception as e:
+            db.rollback()
+            return {"status": "error", "detail": str(e)}
+        finally:
+            db.close()
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
