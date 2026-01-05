@@ -96,3 +96,18 @@ class ScheduledWish(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
     
     owner = orm_relationship("User", back_populates="wishes")
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String(100), index=True) # wish_scheduled, wish_sent, contact_added, etc.
+    details = Column(String(500), nullable=True) # e.g. "Sent Birthday wish to John"
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user_id = Column(Integer, ForeignKey("users.id"))
+    owner = orm_relationship("User", back_populates="activities")
+
+# Add back_populates to User model
+User.activities = orm_relationship("ActivityLog", back_populates="owner")
+

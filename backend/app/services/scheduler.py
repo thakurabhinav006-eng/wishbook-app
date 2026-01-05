@@ -2,7 +2,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
-from app.db.models import ScheduledWish
+from app.db.models import ScheduledWish, ActivityLog
 from app.services.llm import generate_wish_text
 from datetime import datetime, timedelta
 import asyncio
@@ -99,6 +99,19 @@ def process_scheduled_wish(wish_id: int):
         
         db.commit()
         
+        # Log Success Activity
+        try:
+            log = ActivityLog(
+                user_id=wish.user_id,
+                action="wish_sent",
+                details=f"Sent {wish.occasion} wish to {wish.recipient_name}",
+                created_at=datetime.utcnow()
+            )
+            db.add(log)
+            db.commit()
+        except Exception as log_err:
+            print(f"Failed to log success activity: {log_err}")
+
         print(f"SUCCESS: Wish generated and 'sent' to {wish.recipient_name}: \n{generated_text}")
 
         # --- Recursion Logic ---
@@ -155,6 +168,17 @@ def process_scheduled_wish(wish_id: int):
         print(f"FAILED to process wish {wish_id}: {e}")
         if wish:
             wish.status = "failed"
+            # Log Failure Activity
+            try:
+                log = ActivityLog(
+                    user_id=wish.user_id,
+                    action="wish_failed",
+                    details=f"Failed to send wish to {wish.recipient_name}: {str(e)[:100]}",
+                    created_at=datetime.utcnow()
+                )
+                db.add(log)
+            except Exception:
+                pass
             db.commit()
     finally:
         db.close()

@@ -21,7 +21,7 @@ if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
 connect_args = {}
 
 # Enable SSL workaround for ALL remote MySQL connections (safest for Vercel/Aiven)
-if "localhost" not in SQLALCHEMY_DATABASE_URL and "127.0.0.1" not in SQLALCHEMY_DATABASE_URL:
+if "sqlite" not in SQLALCHEMY_DATABASE_URL and "localhost" not in SQLALCHEMY_DATABASE_URL and "127.0.0.1" not in SQLALCHEMY_DATABASE_URL:
     connect_args["ssl"] = {"check_hostname": False, "verify_mode": 0}
 
 engine = create_engine(

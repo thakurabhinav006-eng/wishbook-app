@@ -23,6 +23,22 @@ from fastapi.security import OAuth2PasswordRequestForm
 from app.auth import get_password_hash, verify_password, create_access_token, get_current_user, get_current_admin, verify_google_token
 from app.services.email_service import send_password_reset_email
 
+from app.services.email_service import send_password_reset_email
+
+# Helper for Activity Logging
+def log_activity(db: Session, user_id: int, action: str, details: str):
+    try:
+        activity = models.ActivityLog(
+            user_id=user_id,
+            action=action,
+            details=details,
+            created_at=datetime.utcnow()
+        )
+        db.add(activity)
+        db.commit()
+    except Exception as e:
+        print(f"Failed to log activity: {e}")
+
 router = APIRouter()
 
 # Caching
@@ -762,6 +778,17 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
         "notification_preferences": current_user.notification_preferences
     }
 
+@router.get("/activity/recent")
+async def get_recent_activity(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    activities = db.query(models.ActivityLog).filter(
+        models.ActivityLog.user_id == current_user.id
+    ).order_by(models.ActivityLog.created_at.desc()).limit(10).all()
+    
+    return [{"action": a.action, "details": a.details, "created_at": a.created_at} for a in activities]
+
 # --- Generation Endpoints (Public) ---
 
 @router.post("/generate")
@@ -810,30 +837,45 @@ async def schedule_wish(
     try:
         scheduled_time = datetime.fromisoformat(request.scheduled_time) if request.scheduled_time else datetime.utcnow()
 
-        new_wish = ScheduledWish(
+        recurrence_map = {
+            "none": 0,
+            "daily": 1,
+            "weekly": 7,
+            "monthly": 30, # Approx
+            "yearly": 365 # Approx
+        }
+
+        new_wish = models.ScheduledWish(
             recipient_name=request.recipient_name,
             recipient_email=request.recipient_email,
             occasion=request.occasion,
             tone=request.tone,
             extra_details=request.extra_details,
             scheduled_time=scheduled_time,
-            user_id=current_user.id,
+            status="pending",
             platform=request.platform,
             phone_number=request.phone_number,
             telegram_chat_id=request.telegram_chat_id,
-            is_recurring=1 if request.recurrence != "none" else 0,
+            is_recurring=recurrence_map.get(request.recurrence, 0),
             event_name=request.event_name,
             event_type=request.event_type,
             reminder_days_before=request.reminder_days_before,
             auto_send=request.auto_send,
             media_url=request.media_url,
             template_id=request.template_id,
-            generated_wish=request.generated_wish
+            generated_wish=request.generated_wish,
+            user_id=current_user.id
         )
         db.add(new_wish)
         db.commit()
         db.refresh(new_wish)
+        
+        # Log Activity
+        log_activity(db, current_user.id, "wish_scheduled", f"Scheduled {request.occasion} wish for {request.recipient_name}")
 
+        # If scheduled for now (or near now), we might want to trigger scheduler or check imediately
+        # For now, just rely on scheduler loop
+        
         # Schedule the job
         scheduler.add_job(
             process_scheduled_wish, 
@@ -842,7 +884,13 @@ async def schedule_wish(
             args=[new_wish.id]
         )
 
-        return {"message": "Wish scheduled successfully", "id": new_wish.id}
+        return {
+            "message": "Wish scheduled successfully", 
+            "id": new_wish.id,
+            "generated_wish": new_wish.generated_wish,
+            "recipient_name": new_wish.recipient_name,
+            "scheduled_time": new_wish.scheduled_time.isoformat() if new_wish.scheduled_time else None
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

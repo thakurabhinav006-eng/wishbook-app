@@ -14,6 +14,7 @@ import CalendarView from '@/components/dashboard/CalendarView';
 import ProfilePage from '@/components/dashboard/ProfilePage';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import UpcomingEventsTimeline from '@/components/dashboard/UpcomingEventsTimeline';
+import RecentActivity from '@/components/dashboard/RecentActivity';
 import {
     Wand2,
     LayoutDashboard,
@@ -210,8 +211,9 @@ const DashboardContent = () => {
                                 </div>
                                 
                                 {/* Right Col - Timeline */}
-                                <div className="lg:col-span-1">
+                                <div className="lg:col-span-1 space-y-6">
                                     <UpcomingEventsTimeline />
+                                    <RecentActivity />
                                 </div>
                             </div>
                         </div>

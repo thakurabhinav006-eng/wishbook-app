@@ -6,7 +6,7 @@ from app.db import models
 from app.db.database import engine
 from app.services.scheduler import scheduler # Changed from start_scheduler to scheduler object
 import contextlib # Added import for contextlib
-from .core.firebase import init_firebase # Added import for init_firebase
+# from .core.firebase import init_firebase # Added import for init_firebase
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI):
     # Startup
     try:
         scheduler.start()
-        init_firebase() # Initialize Firebase
+        # init_firebase() # Initialize Firebase
     except Exception as e:
         print(f"Warning: Startup failed: {e}")
     yield

@@ -24,7 +24,12 @@ tests/test_forgot_password_story.py .....        [100%]
 =================== 5 passed, 8 warnings in 12.29s ==================
 ```
 
+
+## UI Verification
+![Forgot Password Link](/Users/trickshot/.gemini/antigravity/brain/5f1a8b9c-b937-411c-9b57-97c0623be1fd/forgot_password_link_1767551872400.png)
+
 ## Test Cases Covered
+
 1.  **`test_request_reset_success`**: Generates token & sends email (HTTP 200).
 2.  **`test_request_reset_unregistered`**: returns success security message (HTTP 200).
 3.  **`test_reset_password_success`**: Validates token & updates password (HTTP 200).
