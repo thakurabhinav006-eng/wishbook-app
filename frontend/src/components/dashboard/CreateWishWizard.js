@@ -78,7 +78,7 @@ const StepWho = ({ contacts, formData, handleChange, toggleContact }) => (
          <div className="grid grid-cols-3 gap-2 mt-4">
             {[
                 { id: 'email', icon: Mail, label: 'Email' },
-                { id: 'whatsapp', icon: MessageSquare, label: 'WhatsApp' },
+                // { id: 'whatsapp', icon: MessageSquare, label: 'WhatsApp' },
                 // { id: 'telegram', icon: Send, label: 'Telegram' }
             ].map(p => (
                 <button
