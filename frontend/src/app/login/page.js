@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight, Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
+import { getApiUrl } from '@/lib/utils';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -22,11 +23,29 @@ const Login = () => {
         setIsLoading(true);
 
         try {
-            await login(email, password); // Assuming login function handles the API call and token storage
-            // router.push('/dashboard'); // login likely handles redirect or we do it here if login returns success
-            // If login from context returns void/promise and throws on error:
+            // FastAPI OAuth2PasswordRequestForm expects form-urlencoded data with 'username' and 'password'
+            const formData = new URLSearchParams();
+            formData.append('username', email); // backend expects 'username' for the email field
+            formData.append('password', password);
+
+            const res = await fetch(getApiUrl('/api/token'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.detail || 'Login failed');
+            }
+
+            await login(data.access_token);
             router.push('/dashboard');
         } catch (err) {
+            console.error(err);
             setError(err.message || 'Login failed. Please check your credentials.');
         } finally {
             setIsLoading(false);
