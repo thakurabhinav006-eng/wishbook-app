@@ -43,12 +43,7 @@ const Login = () => {
             }
 
             const user = await login(data.access_token);
-            
-            if (user && user.role === 'admin') {
-                router.push('/admin');
-            } else {
-                router.push('/dashboard');
-            }
+            router.push('/dashboard');
         } catch (err) {
             console.error(err);
             setError(err.message || 'Login failed. Please check your credentials.');
