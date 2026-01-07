@@ -65,7 +65,25 @@ GOOGLE_CLIENT_ID = "1024660950963-qutq4kf92fk53r2lgss6akr6dcsvb4ui.apps.googleus
 
 def verify_google_token(token: str):
     try:
+        # Try verifying as ID Token first
         idinfo = id_token.verify_oauth2_token(token, requests.Request(), GOOGLE_CLIENT_ID)
         return idinfo
     except ValueError:
+        # If ID Token fails (or if it's an Access Token), try UserInfo API
+        try:
+            import urllib.request
+            import json
+            
+            # Call Google UserInfo API
+            req = urllib.request.Request(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {token}"}
+            )
+            with urllib.request.urlopen(req) as response:
+                if response.status == 200:
+                    user_info = json.loads(response.read().decode())
+                    return user_info
+        except Exception as e:
+            print(f"Google Token Verification Failed: {e}")
+            return None
         return None

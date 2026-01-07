@@ -20,7 +20,12 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
             });
             const data = await res.json();
 
-            // Allow checking backend logs even if "failed" silently for security
+            if (!res.ok) {
+                setStatus('error');
+                setMessage(data.detail || 'Something went wrong.');
+                return;
+            }
+
             setStatus('success');
             setMessage('If an account exists, a reset link has been sent.');
 

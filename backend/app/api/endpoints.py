@@ -59,7 +59,7 @@ class UserCreate(BaseModel):
         # Basic regex for email validation
         import re
         if not re.match(r"[^@]+@[^@]+\.[^@]+", v):
-            raise ValueError("Invalid email format")
+            raise ValueError("Please include an '@' in the email address" if '@' not in v else "Please enter a valid email address")
         return v
 
     @validator("terms_accepted")
@@ -724,8 +724,8 @@ async def upload_media(
 async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
-        # Don't reveal user existence
-        return {"message": "If account exists, reset link sent"}
+        # Bug #1775: Return explicit error for unregistered email
+        raise HTTPException(status_code=404, detail="Email not registered")
     
     # Generate token
     reset_token = str(uuid.uuid4())

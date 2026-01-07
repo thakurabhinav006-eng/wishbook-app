@@ -172,6 +172,34 @@ const AdminDashboard = () => {
         } catch (error) { console.error(error); }
     };
 
+    const handleToggleStatus = async (user) => {
+        const newStatus = user.is_active ? 0 : 1;
+        const action = newStatus ? "Activate" : "Suspend";
+        if (!window.confirm(`Are you sure you want to ${action} this user?`)) return;
+
+        try {
+            const res = await fetch(getApiUrl(`/api/admin/users/${user.id}`), {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ is_active: newStatus })
+            });
+
+            if (res.ok) {
+                const updatedUsers = users.map(u => u.id === user.id ? { ...u, is_active: newStatus } : u);
+                setUsers(updatedUsers);
+            } else {
+                const data = await res.json();
+                alert(data.detail || "Failed to update status");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("An error occurred");
+        }
+    };
+
     const openEditUser = (user) => {
         setEditingUser(user);
         setModalMode('edit');
@@ -479,6 +507,15 @@ const AdminDashboard = () => {
                                                         <button onClick={() => openEditUser(u)} className="p-2 hover:bg-indigo-500/20 text-gray-400 hover:text-indigo-300 rounded-lg transition-colors" title="Edit User">
                                                             <Users className="w-4 h-4" />
                                                         </button>
+                                                        {u.role !== 'admin' && (
+                                                            <button 
+                                                                onClick={() => handleToggleStatus(u)} 
+                                                                className={`p-2 rounded-lg transition-colors ${u.is_active ? 'hover:bg-red-500/20 text-gray-400 hover:text-red-400' : 'hover:bg-green-500/20 text-gray-400 hover:text-green-400'}`}
+                                                                title={u.is_active ? "Suspend User" : "Activate User"}
+                                                            >
+                                                                {u.is_active ? <ShieldOff className="w-4 h-4" /> : <Shield className="w-4 h-4" />}
+                                                            </button>
+                                                        )}
                                                         <button onClick={() => handleResetPassword(u.id)} className="p-2 hover:bg-amber-500/20 text-gray-400 hover:text-amber-300 rounded-lg transition-colors" title="Reset Password">
                                                             <RefreshCcw className="w-4 h-4" />
                                                         </button>

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Lock, Mail, User, CheckCircle, Phone } from 'lucide-react';
+import { Sparkles, ArrowRight, Lock, Mail, User, CheckCircle, Phone, Eye, EyeOff } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 
 import { getApiUrl } from '@/lib/utils';
@@ -15,6 +15,8 @@ const Signup = () => {
     const [mobile, setMobile] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState('free');
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [availablePlans, setAvailablePlans] = useState([]);
@@ -86,7 +88,7 @@ const Signup = () => {
                 let errorMessage = 'Signup failed';
                 if (data.detail) {
                     if (Array.isArray(data.detail)) {
-                        errorMessage = data.detail.map(e => e.msg).join(', ');
+                        errorMessage = data.detail.map(e => e.msg.replace('Value error, ', '').replace('value error, ', '')).join(', ');
                     } else {
                         errorMessage = data.detail;
                     }
@@ -204,11 +206,11 @@ const Signup = () => {
                             animate={{ opacity: 1, y: 0 }}
                             className="mb-6 p-4 bg-red-500/10 border border-red-500/20 text-red-200 rounded-xl text-sm flex items-center"
                         >
-                            <span className="mr-2">⚠️</span> {error}
+                            <span className="mr-2">⚠️</span> {error.replace('Value error, ', '').replace('value error, ', '')}
                         </motion.div>
                     )}
 
-                    {/* Plan Selection */}
+                    {/* Plan Selection - Commented out as per request
                     <div className="mb-8">
                         <label className="text-sm font-medium text-gray-300 ml-1 mb-3 block">Select a Plan</label>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -239,6 +241,7 @@ const Signup = () => {
                             ))}
                         </div>
                     </div>
+                    */}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
@@ -290,14 +293,21 @@ const Signup = () => {
                             <div className="relative group">
                                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors w-5 h-5" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white/10 focus:border-transparent outline-none transition-all placeholder-gray-600"
+                                    className="w-full pl-10 pr-12 py-3 bg-white/5 border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white/10 focus:border-transparent outline-none transition-all placeholder-gray-600"
                                     placeholder="••••••••"
                                     required
                                     minLength={8}
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-purple-400 transition-all hover:scale-110 active:scale-95 focus:outline-none p-1 z-10"
+                                >
+                                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
                             </div>
                             <p className="text-xs text-gray-500 ml-1">Must be at least 8 characters</p>
                         </div>
@@ -307,10 +317,10 @@ const Signup = () => {
                             <div className="relative group">
                                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors w-5 h-5" />
                                 <input
-                                    type="password"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`w-full pl-10 pr-4 py-3 bg-white/5 border text-white rounded-xl focus:ring-2 focus:bg-white/10 outline-none transition-all placeholder-gray-600 ${
+                                    className={`w-full pl-10 pr-12 py-3 bg-white/5 border text-white rounded-xl focus:ring-2 focus:bg-white/10 outline-none transition-all placeholder-gray-600 ${
                                         confirmPassword && password !== confirmPassword 
                                         ? 'border-red-500/50 focus:ring-red-500' 
                                         : 'border-white/10 focus:ring-purple-500 focus:border-transparent'
@@ -318,6 +328,13 @@ const Signup = () => {
                                     placeholder="••••••••"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-purple-400 transition-all hover:scale-110 active:scale-95 focus:outline-none p-1 z-10"
+                                >
+                                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                                </button>
                             </div>
                         </div>
 
@@ -330,7 +347,7 @@ const Signup = () => {
                                 className="w-5 h-5 rounded border-white/10 bg-white/5 text-purple-600 focus:ring-purple-500 focus:ring-offset-0"
                             />
                             <label htmlFor="terms" className="text-sm text-gray-400">
-                                I agree to the <a href="#" className="text-purple-400 hover:text-purple-300 underline">Terms & Conditions</a>
+                                I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:text-purple-300 underline">Terms & Conditions</a>
                             </label>
                         </div>
 
