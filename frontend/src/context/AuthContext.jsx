@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
             if (res.ok) {
                 const userData = await res.json();
                 setUser(userData);
+                return userData;
             } else if (res.status === 401) {
                 localStorage.removeItem('token');
                 setToken(null);
@@ -28,6 +29,7 @@ export const AuthProvider = ({ children }) => {
             console.error("Failed to fetch user profile");
         }
         setLoading(false);
+        return null;
     };
 
     const updateUser = (userData) => {
@@ -77,7 +79,8 @@ export const AuthProvider = ({ children }) => {
     const login = async (accessToken) => {
         localStorage.setItem('token', accessToken);
         setToken(accessToken);
-        await fetchCurrentUser(accessToken);
+        const userData = await fetchCurrentUser(accessToken);
+        return userData;
     };
 
     const googleLogin = async (googleToken) => {
