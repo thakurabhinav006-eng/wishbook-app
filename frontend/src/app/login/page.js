@@ -96,18 +96,25 @@ const Login = () => {
                         <p className="text-gray-400 mb-6">Access your dashboard</p>
                         
                         <div className="flex justify-center mb-6">
-                            <GoogleLogin
-                                onSuccess={credentialResponse => {
-                                    googleLogin(credentialResponse.credential);
-                                }}
-                                onError={() => {
-                                    setError('Google Login Failed');
-                                }}
-                                theme="filled_black"
-                                shape="pill"
-                                size="large"
-                                text="signin_with"
-                            />
+                                    <GoogleLogin
+                                        onSuccess={async (credentialResponse) => {
+                                            try {
+                                                const success = await googleLogin(credentialResponse.credential);
+                                                if (!success) {
+                                                    setError('Google sign-in failed. Please try again.');
+                                                }
+                                            } catch (err) {
+                                                setError('Google sign-in error occurred.');
+                                            }
+                                        }}
+                                        onError={() => {
+                                            setError('Google sign-in was cancelled or failed. Please try again.');
+                                        }}
+                                        theme="filled_black"
+                                        shape="pill"
+                                        size="large"
+                                        text="signin_with"
+                                    />
                         </div>
                         
                         <div className="relative mb-6">

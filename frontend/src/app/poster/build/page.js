@@ -1,15 +1,19 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getApiUrl } from '@/lib/utils';
 import GreetingCard from '@/components/GreetingCard';
 import CustomizationControls from '@/components/dashboard/CustomizationControls';
-import { Send, ArrowLeft, Loader2 } from 'lucide-react';
+import Toast from '@/components/Toast';
+import { Send, ArrowLeft, Loader2, Sparkles, Palette } from 'lucide-react';
+import { AnimatePresence } from 'framer-motion'; // Assuming AnimatePresence is imported from framer-motion
 
-export default function BuildPosterPage() {
+// Define the main component
+function BuildPosterContent() {
     const { token, user, loading: authLoading } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     
     // Core State
     const [wishText, setWishText] = useState('Happy Birthday! May your day be filled with joy.');
@@ -25,11 +29,28 @@ export default function BuildPosterPage() {
     const [recipientEmail, setRecipientEmail] = useState('');
     const [isSending, setIsSending] = useState(false);
 
+    // Toast State
+    const [toast, setToast] = useState(null);
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
+
     useEffect(() => {
         if (!authLoading && !token) {
             router.push('/login');
         }
-    }, [authLoading, token, router]);
+
+        // Handle URL parameters
+        const paramWish = searchParams.get('wish');
+        const paramRecipient = searchParams.get('recipient');
+        
+        if (paramWish) setWishText(paramWish);
+        if (paramRecipient) setRecipientEmail(paramRecipient);
+        
+        if (paramWish || paramRecipient) {
+            showToast("Magic wish loaded from dashboard!", "success");
+        }
+    }, [authLoading, token, router, searchParams]);
 
     const handleGenerateMagicBg = async () => {
         if (!wishText) return;
@@ -47,13 +68,14 @@ export default function BuildPosterPage() {
             const data = await res.json();
             if (res.ok) {
                 setCustomImageTexture(data.url);
-                if (!activeTemplate) setActiveTemplate('modern');
+                if (!activeTemplate) setActiveTemplate('neon'); // Use neon for better contrast with AI BGs
+                showToast("Magic background generated!", "success");
             } else {
-                alert("Failed to generate background");
+                showToast("Failed to generate background", "error");
             }
         } catch (err) {
             console.error("AI BG Failed:", err);
-            alert("Network error generated background");
+            showToast("Network error generated background", "error");
         } finally {
              setIsGeneratingBg(false);
         }
@@ -68,7 +90,7 @@ export default function BuildPosterPage() {
         // Simulating backend call
         await new Promise(r => setTimeout(r, 2000));
         
-        alert(`Poster Sent to ${recipientEmail}! (Simulation)`);
+        showToast(`Poster Sent successfully to ${recipientEmail}!`, "success");
         setIsSending(false);
         setRecipientEmail('');
     };
@@ -166,6 +188,26 @@ export default function BuildPosterPage() {
                 </div>
 
             </div>
+
+             {/* System Toasts */}
+             <AnimatePresence>
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
+    );
+}
+
+// Wrap with Suspense for useSearchParams
+export default function BuildPosterPage() {
+    return (
+        <React.Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Loading Poster Studio...</div>}>
+            <BuildPosterContent />
+        </React.Suspense>
     );
 }

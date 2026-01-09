@@ -4,6 +4,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-mo
 import { useAuth } from '@/context/AuthContext';
 import { getApiUrl } from '@/lib/utils';
 import { Search, Filter, Sparkles, Calendar, PartyPopper, Heart, Briefcase, Share2, Trash2 } from 'lucide-react';
+import useSWR from 'swr';
 
 const getIcon = (occasion) => {
     const lower = occasion?.toLowerCase() || '';
@@ -83,9 +84,10 @@ const Card3D = ({ wish, index }) => {
 
                     {/* Schedule Details */}
                     <div className="pt-2 flex flex-col space-y-1.5 text-xs text-gray-400">
-                        <div className="flex items-center space-x-2">
                              <Calendar className="w-3 h-3 text-white/40" />
-                             <span>Scheduled: <span className="text-gray-300">{wish.scheduled_time ? new Date(wish.scheduled_time).toLocaleString() : 'Not set'}</span></span>
+                             <span>Scheduled: <span className="text-gray-300">
+                                 {wish.scheduled_time ? new Date(wish.scheduled_time).toLocaleString() : 'Not set'}
+                             </span></span>
                         </div>
                         {wish.updated_at && (
                              <div className="pl-5 text-[10px] text-gray-600">
@@ -93,8 +95,6 @@ const Card3D = ({ wish, index }) => {
                              </div>
                         )}
                     </div>
-                </div>
-
                 {/* Footer / Actions */}
                 <div className="mt-4 pt-4 border-t border-white/5 flex justify-between items-center transform-style-3d translate-z-10 opacity-60 group-hover:opacity-100 transition-opacity">
                     <span className="text-xs text-gray-600">ID: {wish.user_id ? `User-${wish.user_id}` : 'Me'}</span>
@@ -108,8 +108,6 @@ const Card3D = ({ wish, index }) => {
         </motion.div>
     );
 };
-
-import useSWR from 'swr';
 
 const fetcher = ([url, token]) => fetch(url, { headers: { 'Authorization': `Bearer ${token}` } }).then(res => res.json());
 

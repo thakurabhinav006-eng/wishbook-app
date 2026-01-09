@@ -25,7 +25,7 @@ export default function DashboardLayout({ children }) {
             </div>
 
             {/* Main Content */}
-            <main className="md:ml-72 min-h-screen relative overflow-hidden">
+            <main className="md:ml-72 min-h-screen relative overflow-x-hidden">
                 {/* Top Glass Gradient (Decorative) */}
                 <div className="absolute top-0 left-0 w-full h-64 bg-gradient-to-b from-purple-900/10 to-transparent pointer-events-none" />
                 

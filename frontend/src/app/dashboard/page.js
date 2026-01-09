@@ -15,11 +15,15 @@ import ProfilePage from '@/components/dashboard/ProfilePage';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import UpcomingEventsTimeline from '@/components/dashboard/UpcomingEventsTimeline';
 import RecentActivity from '@/components/dashboard/RecentActivity';
+import WishSuccessModal from '@/components/dashboard/WishSuccessModal';
+import Toast from '@/components/Toast';
 import {
     Wand2,
     LayoutDashboard,
     Sparkles,
     ArrowRight,
+    ArrowLeft,
+    Calendar,
     History,
     RefreshCw,
     Check
@@ -40,6 +44,11 @@ const DashboardContent = () => {
     const [isGeneratingBg, setIsGeneratingBg] = useState(false);
     const [wordResults, setWordResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [successModal, setSuccessModal] = useState({ isOpen: false, data: null });
+    const [wizardKey, setWizardKey] = useState(0);
+
+    const showToast = (message, type = 'info') => setToast({ message, type });
 
     const { token, user, loading: authLoading } = useAuth();
     const router = useRouter();
@@ -65,6 +74,7 @@ const DashboardContent = () => {
     }
 
     const handleGenerateWish = async (formData) => {
+        if (loading) return;
         setLoading(true);
         try {
             const apiEndpoint = formData.scheduled_time
@@ -73,7 +83,7 @@ const DashboardContent = () => {
 
             const payload = formData.scheduled_time ? {
                 ...formData,
-                scheduled_time: new Date(formData.scheduled_time).toISOString(),
+                scheduled_time: formData.scheduled_time, // Pass exact string from wizard
             } : formData;
 
             const res = await fetch(apiEndpoint, {
@@ -94,21 +104,52 @@ const DashboardContent = () => {
                      setCustomFont('modern');
                      setCustomColor(null);
                      setCustomImageTexture(null);
+                     setLoading(false); // Immediate unlock for non-schedule wishes
                 }
-                else if (data.message) alert(`Success: ${data.message} (ID: ${data.id})`);
+                else if (data.message) {
+                    setSuccessModal({ isOpen: true, data: formData });
+                    // NOTE: setLoading(false) is called in handleSuccessAction
+                }
             } else {
-                alert('Error: ' + JSON.stringify(data));
+                const errorMessage = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+                showToast(errorMessage || 'Failed to generate wish', 'error');
+                setLoading(false);
             }
         } catch (error) {
-            alert("Failed to generate wish");
-        } finally {
+            showToast('An unexpected error occurred', 'error');
             setLoading(false);
         }
     };
 
+    const handleSuccessAction = (action) => {
+        setSuccessModal({ isOpen: false, data: null });
+        setWizardKey(prev => prev + 1); // Force reset the wizard
+        setLoading(false); // Finally unlock the UI
+
+        if (action === 'gallery') {
+            router.push('/dashboard?tab=gallery');
+        } else if (action === 'calendar') {
+            router.push('/dashboard?tab=calendar');
+        } else if (action === 'poster') {
+            const wishText = successModal.data?.generated_wish || '';
+            const recipient = successModal.data?.recipient_name || '';
+            router.push(`/poster/build?wish=${encodeURIComponent(wishText)}&recipient=${encodeURIComponent(recipient)}`);
+        } else if (action === 'create') {
+            setWish(null);
+            router.push('/dashboard?tab=basic');
+        } else {
+            router.push('/dashboard?tab=overview');
+        }
+    };
+
     const handleGenerateMagicBg = async () => {
-        if (!wish) return; // Need a wish first
+        if (!wish) {
+            showToast('Please generate a wish first!', 'info');
+            return;
+        }
         setIsGeneratingBg(true);
+        showToast('Dreaming up a beautiful background...', 'info');
+        
         try {
             const res = await fetch(getApiUrl('/api/generate-image-prompt'), {
                 method: 'POST',
@@ -116,19 +157,26 @@ const DashboardContent = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ wish: wish }) // endpoint expects { wish: str }
+                body: JSON.stringify({ wish: wish })
             });
 
             const data = await res.json();
-             // The new endpoint returns { prompt, url } directly, NOT wrapped in global response "data" field based on my implementation
             if (res.ok) {
                 setCustomImageTexture(data.url);
-                if (!activeTemplate) setActiveTemplate('modern');
+                // Ensure a dark/neon theme for better AI image contrast
+                if (!activeTemplate || activeTemplate === 'modern') {
+                    setActiveTemplate('neon');
+                }
+                showToast('Magic background captured!', 'success');
+            } else {
+                const errorMessage = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+                showToast(errorMessage || 'Failed to generate background', 'error');
             }
         } catch (err) {
             console.error("AI BG Failed:", err);
+            showToast('The AI is tired. Please try again later.', 'error');
         } finally {
-             setIsGeneratingBg(false);
+            setIsGeneratingBg(false);
         }
     };
 
@@ -220,17 +268,38 @@ const DashboardContent = () => {
                     )}
 
                     {activeTab === 'basic' && (
-                        <div className="max-w-4xl mx-auto">
+                        <div className="max-w-6xl mx-auto">
                             {!wish ? (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.9 }}
                                 >
-                                    <CreateWishWizard onGenerate={handleGenerateWish} loading={loading} />
+                                    <CreateWishWizard 
+                                        key={wizardKey}
+                                        onGenerate={handleGenerateWish} 
+                                        loading={loading} 
+                                    />
                                 </motion.div>
                             ) : (
-                                    <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl items-start">
+                                <div className="space-y-6">
+                                    {/* Back to Wizard Action */}
+                                    <div className="flex items-center justify-between mb-2">
+                                        <button 
+                                            onClick={() => setWish(null)}
+                                            className="group flex items-center space-x-2 text-gray-400 hover:text-white transition-all bg-white/5 hover:bg-white/10 px-5 py-2.5 rounded-2xl border border-white/5 hover:border-white/20"
+                                        >
+                                            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+                                            <span className="text-sm font-medium">Edit Wish Details</span>
+                                        </button>
+                                        
+                                        <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-widest bg-purple-500/10 px-4 py-2 rounded-full border border-purple-500/20">
+                                            <Sparkles className="w-3 h-3" />
+                                            <span>Customizing Magic</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-col lg:flex-row gap-8 items-start">
                                         
                                         {/* Left: The Card */}
                                         <div className="flex-1 w-full flex justify-center sticky top-20">
@@ -258,6 +327,7 @@ const DashboardContent = () => {
                                             isGeneratingBg={isGeneratingBg}
                                         />
                                     </div>
+                                </div>
                             )}
                         </div>
                     )}
@@ -296,6 +366,25 @@ const DashboardContent = () => {
                         </div>
                     )}
                 </motion.div>
+            </AnimatePresence>
+
+            {/* Premium Success Modal */}
+            <WishSuccessModal 
+                isOpen={successModal.isOpen}
+                onClose={() => handleSuccessAction('overview')}
+                onAction={handleSuccessAction}
+                data={successModal.data}
+            />
+
+            {/* System Toasts */}
+            <AnimatePresence>
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )}
             </AnimatePresence>
         </div>
     );

@@ -1,406 +1,94 @@
 'use client';
-import React, { useState, Suspense, useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import {
-    Text,
-    PresentationControls,
-    Float,
-    Environment,
-    ContactShadows,
-    RoundedBox,
-    Sparkles as ThreeSparkles,
-    Center,
-    MeshTransmissionMaterial,
-    Grid,
-    GradientTexture,
-    Image // Import Image
-} from '@react-three/drei';
-import { Copy, Share2, Check, Loader2, AlertCircle } from 'lucide-react';
-import * as THREE from 'three';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Copy, Share2, Check, Sparkles, Wand2 } from 'lucide-react';
 
-class ErrorBoundary extends React.Component {
-    constructor(props) {
-        super(props);
-        this.state = { hasError: false };
-    }
+/**
+ * Premium Greeting Card component (Pure React + CSS + Framer Motion)
+ * Replaces Three.js implementation for better performance and AI Background integration.
+ */
 
-    static getDerivedStateFromError(error) {
-        return { hasError: true };
-    }
-
-    componentDidCatch(error, errorInfo) {
-        console.error("GreetingCard 3D Error:", error);
-        if (this.props.onError) this.props.onError(error);
-    }
-
-    render() {
-        if (this.state.hasError) {
-            return this.props.fallback || null;
-        }
-        return this.props.children;
-    }
-}
-
-
-// --- Theme Configurations ---
 const themes = {
     modern: {
-        css: "bg-gradient-to-br from-slate-900 to-slate-800",
-        accent: "#a855f7",
-        env: "city",
-        type: "glass"
+        bg: "bg-slate-900",
+        gradient: "bg-gradient-to-br from-slate-900 to-slate-800",
+        accent: "text-purple-400",
+        glass: "bg-white/10 border-white/20 backdrop-blur-2xl",
+        textColor: "text-white",
+        iconColor: "text-purple-400"
     },
     birthday: {
-        css: "bg-[conic-gradient(at_center,_var(--tw-gradient-stops))] from-indigo-500 via-purple-500 to-pink-500",
-        accent: "#fcd34d",
-        env: "park",
-        type: "party"
+        bg: "bg-indigo-600",
+        gradient: "bg-[conic-gradient(at_center,_var(--tw-gradient-stops))] from-indigo-500 via-purple-500 to-pink-500",
+        accent: "text-yellow-300",
+        glass: "bg-white/20 border-white/30 backdrop-blur-xl",
+        textColor: "text-white",
+        iconColor: "text-yellow-400",
+        sparkles: true
     },
     love: {
-        css: "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-900 via-pink-900 to-black",
-        accent: "#fb7185",
-        env: "sunset",
-        type: "romantic"
+        bg: "bg-rose-950",
+        gradient: "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-rose-900 via-pink-900 to-black",
+        accent: "text-rose-400",
+        glass: "bg-black/30 border-white/10 backdrop-blur-2xl",
+        textColor: "text-pink-100",
+        iconColor: "text-rose-500"
     },
     neon: {
-        css: "bg-black",
-        accent: "#ec4899",
-        env: "warehouse",
-        type: "cyber"
+        bg: "bg-black",
+        gradient: "bg-black",
+        accent: "text-pink-500",
+        glass: "bg-black/60 border-pink-500/50 backdrop-blur-md shadow-[0_0_30px_rgba(236,72,153,0.2)]",
+        textColor: "text-white",
+        iconColor: "text-pink-500",
+        grid: true
     },
     nature: {
-        css: "bg-gradient-to-br from-green-900 to-emerald-950",
-        accent: "#34d399",
-        env: "park",
-        type: "forest"
+        bg: "bg-emerald-950",
+        gradient: "bg-gradient-to-br from-green-900 to-emerald-950",
+        accent: "text-emerald-400",
+        glass: "bg-black/20 border-white/5 backdrop-blur-xl",
+        textColor: "text-emerald-50",
+        iconColor: "text-emerald-400"
+    },
+    ocean: {
+        bg: "bg-blue-950",
+        gradient: "bg-gradient-to-br from-blue-900 to-sky-950",
+        accent: "text-cyan-400",
+        glass: "bg-white/5 border-white/10 backdrop-blur-2xl",
+        textColor: "text-blue-50",
+        iconColor: "text-cyan-400"
     },
 };
 
-// --- Animation Hook ---
-function useEntranceAnim() {
-    const ref = useRef();
-    useFrame((state, delta) => {
-        if (ref.current) {
-            ref.current.scale.lerp(new THREE.Vector3(1, 1, 1), delta * 2.5);
-        }
-    });
-    return ref;
-}
-
-// --- Fonts ---
-const FONTS = {
-    modern: null, // System default or 'Inter' if loaded
-    serif: 'https://fonts.gstatic.com/s/playfairdisplay/v30/nuFvD-vYSZviVYUb_rj3ij__anPXJzDwcbmjWBN2PKdFvXDXbtM.woff',
-    handwriting: 'https://fonts.gstatic.com/s/dancingcharts/v10/If2RXTr6YS-zF4S-kcSWSVi_sxjsohD9F50.woff'
+const fontFamilies = {
+    modern: 'font-sans',
+    serif: 'font-serif',
+    handwriting: 'font-handwriting'
 };
 
-// --- Templates ---
-// Updated to accept customColor, font, and customImageTexture
-
-const TemplateModern = ({ text, accent, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Clean Frosted Glass */}
-        <RoundedBox args={[5, 3.2, 0.15]} radius={0.15} smoothness={4}>
-            <meshPhysicalMaterial
-                transparent
-                transmission={1}
-                roughness={0}
-                thickness={0.1}
-                color="#ffffff"
-                clearcoat={1}
-                ior={1.2}
-            />
-        </RoundedBox>
-        {/* Accent Rim */}
-        <RoundedBox args={[5.1, 3.3, 0.14]} radius={0.15} smoothness={4}>
-            <meshBasicMaterial color={accent} transparent opacity={0.3} wireframe />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.7, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.7]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#ffffff', '#f1f5f9']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        <Text position={[0, 0, 0.22]} fontSize={0.22} color={customColor || "#020617"} font={font} maxWidth={4} textAlign="center" lineHeight={1.5}>
-            {text}
-        </Text>
-    </group>
-);
-
-const TemplateBirthday = ({ text, accent, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Frame */}
-        <RoundedBox args={[5, 3.2, 0.2]} radius={0.3} smoothness={4}>
-            <meshStandardMaterial color="#fff1f2" roughness={0.3} />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.8, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.8]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#fff1f2', '#fce7f3']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        {/* Confetti */}
-        <ThreeSparkles count={80} scale={6} size={3} speed={0.4} opacity={1} color={["#f472b6", "#60a5fa", "#fbbf24"]} />
-
-        <Text position={[0, 0, 0.22]} fontSize={0.28} color={customColor || "#9d174d"} font={font} maxWidth={4.2} textAlign="center" lineHeight={1.4}>
-            {text}
-        </Text>
-
-        <Float speed={3} rotationIntensity={0.5} floatIntensity={0.5}>
-            <mesh position={[-2.5, 1.5, 0.2]}>
-                <sphereGeometry args={[0.3, 32, 32]} />
-                <meshStandardMaterial color="#f472b6" roughness={0.1} />
-            </mesh>
-            <mesh position={[2.5, -1.5, 0.2]}>
-                <sphereGeometry args={[0.25, 32, 32]} />
-                <meshStandardMaterial color="#60a5fa" roughness={0.1} />
-            </mesh>
-        </Float>
-    </group>
-);
-
-const TemplateLove = ({ text, accent, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Frame */}
-        <RoundedBox args={[5, 3.2, 0.2]} radius={0.1} smoothness={4}>
-            <meshPhysicalMaterial
-                transparent
-                transmission={0.6}
-                roughness={0.2}
-                thickness={0.8}
-                color="#be123c"
-                attenuationColor="#881337"
-                attenuationDistance={1}
-            />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.8, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.8]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#fff1f2', '#fbcfe8']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        <Text position={[0, 0, 0.22]} fontSize={0.25} color={customColor || "#4c0519"} font={font} maxWidth={4.2} textAlign="center" lineHeight={1.4}>
-            {text}
-        </Text>
-        <ThreeSparkles count={40} color="#fda4af" size={3} scale={4} opacity={0.6} speed={0.2} noise={0.5} />
-    </group>
-);
-
-const TemplateNeon = ({ text, accent, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Frame */}
-        <RoundedBox args={[5, 3.2, 0.1]} radius={0.1} smoothness={1}>
-            <meshStandardMaterial color="#0a0a0a" metalness={0.9} roughness={0.1} />
-        </RoundedBox>
-        {/* Neon Border */}
-        <RoundedBox args={[5.1, 3.3, 0.08]} radius={0.1} smoothness={1}>
-            <meshStandardMaterial color="black" emissive={accent} emissiveIntensity={3} />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.8, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.8]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#0f172a', '#1e293b']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        <Grid position={[0, 0, 0.06]} args={[4.5, 2.8]} cellSize={0.2} sectionSize={1} fadeDistance={3} sectionColor={accent} cellColor={accent} />
-
-        <Text position={[0, 0, 0.22]} fontSize={0.25} color={customColor || "#f8fafc"} font={font} maxWidth={4.2} textAlign="center" lineHeight={1.4} anchorX="center" anchorY="middle">
-            {text}
-        </Text>
-    </group>
-);
-
-const TemplateNature = ({ text, accent, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Frame */}
-        <RoundedBox args={[5, 3.2, 0.2]} radius={0.4} smoothness={4}>
-            <meshPhysicalMaterial
-                transparent
-                transmission={0.4}
-                roughness={0}
-                color="#047857"
-                metalness={0.4}
-                clearcoat={1}
-            />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.8, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.8]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#f0fdf4', '#dcfce7']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        <Text position={[0, 0, 0.22]} fontSize={0.25} color={customColor || "#052e16"} font={font} maxWidth={4.2} textAlign="center" lineHeight={1.4}>
-            {text}
-        </Text>
-        <ThreeSparkles count={30} color="#6ee7b7" size={3} scale={4} opacity={0.4} speed={0.2} />
-    </group>
-);
-
-const TemplateOcean = ({ text, customColor, font, customImageTexture }) => (
-    <group>
-        {/* Aquatic Glass */}
-        <RoundedBox args={[5, 3.2, 0.2]} radius={0.2} smoothness={4}>
-            <meshPhysicalMaterial
-                transparent
-                transmission={0.8}
-                roughness={0.1}
-                metalness={0.1}
-                thickness={0.1}
-                color="#0ea5e9"
-                clearcoat={1}
-                envMapIntensity={2}
-            />
-        </RoundedBox>
-
-        {/* Poster - Image or Gradient */}
-        {customImageTexture ? (
-            <Image
-                url={customImageTexture}
-                position={[0, 0, 0.06]}
-                scale={[4.5, 2.7, 1]}
-                transparent
-                opacity={0.95}
-                toneMapped={false}
-            />
-        ) : (
-            <mesh position={[0, 0, 0.05]}>
-                <planeGeometry args={[4.5, 2.7]} />
-                <meshBasicMaterial toneMapped={false}>
-                    <GradientTexture stops={[0, 1]} colors={['#f0f9ff', '#e0f2fe']} size={128} />
-                </meshBasicMaterial>
-            </mesh>
-        )}
-
-        <Text position={[0, 0, 0.22]} fontSize={0.25} color={customColor || "#0c4a6e"} font={font} maxWidth={4.2} textAlign="center" lineHeight={1.4}>
-            {text}
-        </Text>
-        <ThreeSparkles count={50} color="#38bdf8" size={2} scale={3} opacity={0.5} speed={0.1} noise={0.3} />
-    </group>
-);
-
-// --- Main Scene ---
-const CardScene = ({ text, themeName, customColor, font, customImageTexture }) => {
-    // Direct mapping from dashboard IDs to logic
-    const activeThemeKey = themeName || 'modern';
-    const theme = themes[activeThemeKey] || themes.modern;
-    const groupRef = useEntranceAnim();
-
-    return (
-        <group ref={groupRef} scale={[0.1, 0.1, 0.1]}>
-            {/* Essential Lights for Visibility check */}
-            <ambientLight intensity={0.8} />
-            <pointLight position={[10, 10, 10]} intensity={1.5} color="white" />
-            <spotLight position={[0, 5, 0]} intensity={2} angle={0.5} penumbra={1} />
-
-            <Float speed={2} rotationIntensity={0.2} floatIntensity={0.2}>
-                {activeThemeKey === 'birthday' && <TemplateBirthday text={text} accent={theme.accent} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-                {activeThemeKey === 'love' && <TemplateLove text={text} accent={theme.accent} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-                {activeThemeKey === 'neon' && <TemplateNeon text={text} accent={theme.accent} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-                {activeThemeKey === 'nature' && <TemplateNature text={text} accent={theme.accent} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-                {activeThemeKey === 'ocean' && <TemplateOcean text={text} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-                {(!['birthday', 'love', 'neon', 'nature', 'ocean'].includes(activeThemeKey)) && <TemplateModern text={text} accent={theme.accent} customColor={customColor} font={font} customImageTexture={customImageTexture} />}
-            </Float>
-
-            <ContactShadows position={[0, -2.5, 0]} opacity={0.5} scale={10} blur={2.5} far={4} frames={1} />
-            <Environment preset={theme.env} />
-        </group>
-    );
-};
-
-const GreetingCard = ({ text, theme = 'modern', customColor = null, customFont = null, activeTemplate = null, customImageTexture = null }) => {
+const GreetingCard = ({
+    text,
+    theme = 'modern',
+    customColor = null,
+    customFont = 'modern',
+    activeTemplate = null,
+    customImageTexture = null
+}) => {
     const [copied, setCopied] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Determines the visual theme
-    // 1. If activeTemplate is set (User override), use that.
-    // 2. Else fall back to auto-theme 'theme' prop.
+    // Determine the active theme visual config
     let displayThemeKey = activeTemplate || theme;
 
-    // Normalize logic
+    // Normalize logic to match legacy theme names if needed
     if (!activeTemplate) {
         if (theme === 'anniversary') displayThemeKey = 'love';
         if (theme === 'forest') displayThemeKey = 'nature';
         if (theme === 'sunset') displayThemeKey = 'love';
-        if (theme === 'ocean') displayThemeKey = 'ocean'; // keep ocean
     }
 
-    // Fallback if key doesn't exist in map
     if (!themes[displayThemeKey]) displayThemeKey = 'modern';
-
-    const activeTheme = themes[displayThemeKey] || themes.modern;
-
-    // Determine font URL
-    const fontUrl = customFont === 'default' ? undefined : FONTS[customFont] || undefined;
+    const activeTheme = themes[displayThemeKey];
 
     const handleCopy = () => {
         navigator.clipboard.writeText(text);
@@ -408,74 +96,154 @@ const GreetingCard = ({ text, theme = 'modern', customColor = null, customFont =
         setTimeout(() => setCopied(false), 2000);
     };
 
-    if (error) {
-        // Fallback UI in case 3D fails completely
-        return (
-            <div className="w-full h-full min-h-[500px] flex flex-col items-center justify-center bg-slate-900 rounded-3xl border border-white/10 p-8 text-center">
-                <AlertCircle className="w-10 h-10 text-red-400 mb-4" />
-                <h3 className="text-white text-lg font-medium mb-2">3D Scene Error</h3>
-                <p className="text-gray-400 text-sm mb-6">We switched to a simple view.</p>
-                <div className="bg-white/5 p-6 rounded-xl border border-white/10 max-w-md">
-                    <p className="text-white whitespace-pre-wrap leading-relaxed">&quot;{text}&quot;</p>
-                </div>
-            </div>
-        )
-    }
+    const handleShare = (e) => {
+        e.stopPropagation();
+        if (navigator.share) {
+            navigator.share({ title: 'A Magical Wish', text });
+        }
+    };
 
     return (
-        <div className={`w-full h-full min-h-[500px] relative rounded-3xl overflow-hidden border border-white/10 group shadow-2xl transition-colors duration-1000 ${activeTheme.css}`}>
+        <div className={`relative w-full aspect-[1.6/1] rounded-[2.5rem] overflow-hidden border border-white/10 shadow-3xl transition-all duration-1000 ${activeTheme.bg} group`}>
 
-            {/* 3D Canvas */}
-            <div className="absolute inset-0 cursor-grab active:cursor-grabbing z-0 text-clip">
-                <ErrorBoundary onError={setError} fallback={
-                    <div className="w-full h-full flex items-center justify-center bg-transparent">
-                        {/* We rely on the parent checking 'error' state to render the full fallback UI, 
-                              but if ErrorBoundary catches it, we need to trigger that state update. 
-                              The componentDidCatch calls setError. 
-                              We can render nothing here or a simple placeholder while the state updates. */}
-                    </div>
-                }>
-                    <Canvas
-                        key={theme} // FORCE REMOUNT ON THEME CHANGE
-                        camera={{ position: [0, 0, 7], fov: 40 }}
-                        dpr={1}
-                        gl={{ preserveDrawingBuffer: true, alpha: true, antialias: true }}
-                        onCreated={({ gl }) => { gl.setClearColor(0x000000, 0); }}
-                    // onError={setError} // Canvas onError might not catch Suspense errors from drei/Image
-                    >
-                        <Suspense fallback={null}>
-                            <PresentationControls
-                                global
-                                config={{ mass: 2, tension: 500 }}
-                                snap={{ mass: 4, tension: 1500 }}
-                                rotation={[0, 0, 0]}
-                                polar={[-Math.PI / 4, Math.PI / 4]}
-                                azimuth={[-Math.PI / 4, Math.PI / 4]}
-                            >
-                                <CardScene text={text} themeName={displayThemeKey} customColor={customColor} font={fontUrl} customImageTexture={customImageTexture} />
-                            </PresentationControls>
-                        </Suspense>
-                    </Canvas>
-                </ErrorBoundary>
+            <style jsx global>{`
+                @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap');
+                .font-handwriting { font-family: 'Dancing Script', cursive; }
+                .font-serif { font-family: 'Playfair Display', serif; }
+            `}</style>
+
+            {/* Background Layer: Gradient or AI Image */}
+            <div className="absolute inset-0 z-0">
+                <AnimatePresence mode="wait">
+                    {customImageTexture ? (
+                        <motion.div
+                            key={customImageTexture}
+                            initial={{ opacity: 0, scale: 1.1 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 1.5 }}
+                            className="absolute inset-0"
+                        >
+                            <img
+                                src={customImageTexture}
+                                alt="AI Background"
+                                className="w-full h-full object-cover"
+                            />
+                            {/* Dark Overlay for Readability */}
+                            <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
+                        </motion.div>
+                    ) : (
+                        <motion.div
+                            key={displayThemeKey}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 1 }}
+                            className={`absolute inset-0 ${activeTheme.gradient}`}
+                        />
+                    )}
+                </AnimatePresence>
+
+                {/* Cyber Grid for Neon Theme */}
+                {activeTheme.grid && (
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(236,72,153,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(236,72,153,0.1)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
+                )}
             </div>
 
-            {/* Overlay UI */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-4 z-10">
+            {/* Decorative Sparkles */}
+            {activeTheme.sparkles && (
+                <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                    <motion.div
+                        animate={{ opacity: [0.2, 0.5, 0.2], scale: [1, 1.1, 1] }}
+                        transition={{ duration: 3, repeat: Infinity }}
+                        className="absolute top-10 left-10 text-yellow-300/30"
+                    >
+                        <Sparkles size={40} />
+                    </motion.div>
+                    <motion.div
+                        animate={{ opacity: [0.3, 0.6, 0.3], scale: [1, 1.2, 1] }}
+                        transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+                        className="absolute bottom-10 right-10 text-white/30"
+                    >
+                        <Sparkles size={60} />
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Content Layer */}
+            <div className="absolute inset-0 z-10 flex items-center justify-center p-8 md:p-12">
+                <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
+                    className={`relative w-full h-full max-w-4xl p-10 flex flex-col items-center justify-center text-center rounded-[2rem] border transition-all duration-700 ${activeTheme.glass}`}
+                >
+                    {/* Corner Decoration */}
+                    <div className={`absolute top-6 left-6 ${activeTheme.iconColor} opacity-40 group-hover:opacity-100 transition-opacity`}>
+                        <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div className={`absolute bottom-6 right-6 ${activeTheme.iconColor} opacity-40 group-hover:opacity-100 transition-opacity`}>
+                        <Sparkles className="w-6 h-6" />
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-center overflow-auto scrollbar-hide">
+                        <motion.p
+                            key={text + displayThemeKey + customFont}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className={`text-xl md:text-2xl lg:text-3xl font-bold leading-relaxed whitespace-pre-wrap ${fontFamilies[customFont] || 'font-sans'} ${activeTheme.textColor}`}
+                            style={{ color: customColor || undefined }}
+                        >
+                            {text}
+                        </motion.p>
+                    </div>
+
+                    {/* Logo/Branding Stamp */}
+                    <div className="mt-6 flex items-center space-x-2 text-[10px] uppercase tracking-[0.3em] font-bold text-white/20">
+                        <Wand2 className="w-3 h-3" />
+                        <span>WishAI Magic</span>
+                    </div>
+                </motion.div>
+            </div>
+
+            {/* Floating Action Buttons */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center space-x-4 z-20">
                 <button
                     onClick={(e) => { e.stopPropagation(); handleCopy(); }}
-                    className="flex items-center space-x-2 px-6 py-2.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-xl text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                    className="flex items-center space-x-2 px-8 py-3.5 rounded-2xl bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-2xl text-white font-bold transition-all hover:scale-105 active:scale-95 shadow-xl group/btn overflow-hidden relative"
                 >
-                    {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    <span className="text-sm font-medium">Copy</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-blue-500/10 opacity-0 group-hover/btn:opacity-100 transition-opacity" />
+                    <AnimatePresence mode="wait">
+                        {copied ? (
+                            <motion.span key="check" initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: -20 }} className="flex items-center space-x-2">
+                                <Check className="w-5 h-5 text-green-400" />
+                                <span className="text-sm">Copied!</span>
+                            </motion.span>
+                        ) : (
+                            <motion.span key="copy" initial={{ y: 20 }} animate={{ y: 0 }} exit={{ y: -20 }} className="flex items-center space-x-2">
+                                <Copy className="w-5 h-5 text-purple-300" />
+                                <span className="text-sm">Copy Wish</span>
+                            </motion.span>
+                        )}
+                    </AnimatePresence>
                 </button>
+
                 <button
-                    onClick={(e) => { e.stopPropagation(); navigator.share && navigator.share({ title: 'Wish', text }); }}
-                    className="p-2.5 rounded-full bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-xl text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+                    onClick={handleShare}
+                    className="p-3.5 rounded-2xl bg-black/40 hover:bg-black/60 border border-white/20 backdrop-blur-2xl text-white transition-all hover:scale-105 active:scale-95 shadow-xl"
                 >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-5 h-5 text-blue-300" />
                 </button>
             </div>
 
+            {/* Shine Sweep Animation */}
+            <div className="absolute inset-0 pointer-events-none">
+                <motion.div
+                    animate={{ x: ['100%', '-100%'] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent skew-x-[-20deg]"
+                />
+            </div>
         </div>
     );
 };

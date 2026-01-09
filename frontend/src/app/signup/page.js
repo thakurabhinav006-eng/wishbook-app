@@ -59,6 +59,11 @@ const Signup = () => {
             return;
         }
 
+        if (mobile && (mobile.length < 10 || mobile.length > 15)) {
+            setError("Mobile number must be between 10 and 15 digits");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -176,18 +181,25 @@ const Signup = () => {
                         <p className="text-gray-400 mb-6">Start sending magical wishes today</p>
                         
                         <div className="flex justify-center mb-6">
-                            <GoogleLogin
-                                onSuccess={credentialResponse => {
-                                    googleLogin(credentialResponse.credential);
-                                }}
-                                onError={() => {
-                                    setError('Google Login Failed');
-                                }}
-                                theme="filled_black"
-                                shape="pill"
-                                size="large"
-                                text="signup_with"
-                            />
+                                <GoogleLogin
+                                    onSuccess={async (credentialResponse) => {
+                                        try {
+                                            const success = await googleLogin(credentialResponse.credential);
+                                            if (!success) {
+                                                setError('Google sign-in failed. Please try again.');
+                                            }
+                                        } catch (err) {
+                                            setError('Google sign-in error occurred.');
+                                        }
+                                    }}
+                                    onError={() => {
+                                        setError('Google sign-in was cancelled or failed. Please try again.');
+                                    }}
+                                    theme="filled_black"
+                                    shape="pill"
+                                    size="large"
+                                    text="signup_with"
+                                />
                         </div>
                         
                         <div className="relative mb-6">
@@ -281,7 +293,12 @@ const Signup = () => {
                                 <input
                                     type="tel"
                                     value={mobile}
-                                    onChange={(e) => setMobile(e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (/^[0-9+]*$/.test(val)) {
+                                            setMobile(val);
+                                        }
+                                    }}
                                     className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/10 text-white rounded-xl focus:ring-2 focus:ring-purple-500 focus:bg-white/10 focus:border-transparent outline-none transition-all placeholder-gray-600"
                                     placeholder="+1 234 567 8900"
                                 />

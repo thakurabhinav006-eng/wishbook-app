@@ -303,7 +303,7 @@ const AdminDashboard = () => {
              <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
 
             {/* Admin Header */}
-            <header className={`sticky top-0 z-50 ${THEME.glass} shadow-xl`}>
+            <header className={`sticky top-0 z-50 glass-card shadow-xl`}>
                 <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
                     <div className="flex items-center space-x-4">
                         <button 
@@ -348,7 +348,7 @@ const AdminDashboard = () => {
             <main className="flex-1 max-w-7xl mx-auto p-6 md:p-8 w-full z-10">
                 {/* Tabs */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                    <div className={`flex p-1 rounded-xl ${THEME.glass} shadow-lg`}>
+                    <div className={`flex p-1 rounded-xl glass-card shadow-lg`}>
                         {['overview', 'users', 'feed', 'plans', 'logs', 'system'].map(tab => (
                             <button
                                 key={tab}
@@ -392,7 +392,7 @@ const AdminDashboard = () => {
                                 <StatCard title="System Status" value={stats.system_status} color="from-emerald-400 to-green-600" icon={Activity} delay={300} />
                             </div>
 
-                            <div className={`rounded-3xl ${THEME.glass} p-8 shadow-2xl overflow-hidden relative`}>
+                            <div className={`rounded-3xl glass-card p-8 shadow-2xl overflow-hidden relative`}>
                                  <div className="absolute top-0 right-0 p-32 bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
                                  <AdminAnalytics stats={stats} analytics={analytics} />
                             </div>
@@ -453,7 +453,7 @@ const AdminDashboard = () => {
                             </div>
 
                             {/* Users Table */}
-                            <div className={`rounded-2xl ${THEME.glass} overflow-hidden shadow-xl`}>
+                            <div className={`rounded-2xl glass-card overflow-hidden shadow-xl`}>
                                 <div className="overflow-x-auto">
                                     <table className="min-w-full divide-y divide-white/10">
                                             <thead className="bg-white/5">
@@ -575,7 +575,7 @@ const AdminDashboard = () => {
                                 {paginatedFeed.map((w, i) => (
                                     <div 
                                         key={w.id} 
-                                        className={`${THEME.glass} p-6 rounded-2xl ${THEME.glassHover} relative group overflow-hidden`}
+                                        className={`glass-card p-6 rounded-2xl ${THEME.glassHover} relative group overflow-hidden`}
                                         style={{ animationDelay: `${i * 50}ms` }}
                                     >
                                         <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-transparent via-white/20 to-transparent group-hover:via-indigo-500/50 transition-all" />

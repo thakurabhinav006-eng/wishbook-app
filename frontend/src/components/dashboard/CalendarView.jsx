@@ -17,6 +17,8 @@ import {
 import { getApiUrl } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 import CreateWishWizard from './CreateWishWizard';
+import WishSuccessModal from './WishSuccessModal';
+import Toast from '@/components/Toast';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MONTHS = [
@@ -32,7 +34,11 @@ export default function CalendarView() {
     const [loading, setLoading] = useState(true);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState(null);
+    const [successModal, setSuccessModal] = useState({ isOpen: false, data: null });
+    const [toast, setToast] = useState(null);
     const { token } = useAuth();
+
+    const showToast = (message, type = 'info') => setToast({ message, type });
 
     // Fetch wishes
     useEffect(() => {
@@ -123,14 +129,20 @@ export default function CalendarView() {
 
                 // Calculate next increment
                 const prevDate = new Date(nextDate);
-                if (wish.is_recurring === 1) { // Daily
+                // Handle legacy integer (1-4), backend integer (1, 7, 30, 365), and string ('yearly') formats
+                const recType = String(wish.recurrence || wish.is_recurring || '').toLowerCase();
+
+                if (recType === '1' || recType === 'daily') {
                     nextDate.setDate(prevDate.getDate() + 1);
-                } else if (wish.is_recurring === 2) { // Weekly
+                } else if (recType === '2' || recType === 'weekly' || recType === '7') {
                     nextDate.setDate(prevDate.getDate() + 7);
-                } else if (wish.is_recurring === 3) { // Monthly
+                } else if (recType === '3' || recType === 'monthly' || recType === '30') {
                     nextDate.setMonth(prevDate.getMonth() + 1);
-                } else if (wish.is_recurring === 4) { // Yearly
+                } else if (recType === '4' || recType === 'yearly' || recType === '365') {
                     nextDate.setFullYear(prevDate.getFullYear() + 1);
+                } else {
+                    // console.warn(`Unknown recurrence type: ${recType}`);
+                    break; // Critical: Prevent infinite loop if type is unknown
                 }
 
                 // If the generated date is within the current month view, add it
@@ -209,64 +221,172 @@ export default function CalendarView() {
                 </div>
             </div>
 
-            {/* Calendar Grid */}
-            <div className="flex-1 overflow-auto p-6">
-                <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
-                    {/* Day Headers */}
-                    {DAYS.map(day => (
-                        <div key={day} className="p-4 text-center text-sm font-bold text-gray-400 bg-[#0f0f16] border-b border-white/5 uppercase tracking-wider">
-                            {day}
-                        </div>
-                    ))}
-
-                    {/* Days */}
-                    {days.map((day, idx) => (
-                        <div
-                            key={idx}
-                            onClick={() => day && handleDateClick(day)}
-                            className={`min-h-[140px] bg-[#0f0f16]/95 hover:bg-[#151520] transition-colors p-2 border-b border-r border-white/5 relative group cursor-pointer ${!day ? 'bg-[#0a0a0f]' : ''}`}
-                        >
-                            {day && (
-                                <>
-                                    <div className={`text-sm font-medium mb-2 w-7 h-7 flex items-center justify-center rounded-full ${isSameDay(new Date(currentDate.getFullYear(), currentDate.getMonth(), day), new Date())
-                                        ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50'
-                                        : 'text-gray-400 group-hover:text-white'
-                                        }`}>
-                                        {day}
-                                    </div>
-
-                                    {/* Events */}
-                                    <div className="space-y-1.5">
-                                        {getEventsForDay(day).map(wish => (
-                                            <motion.div
-                                                key={wish.id}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                onClick={(e) => handleEventClick(e, wish)}
-                                                className={`px-2 py-1.5 text-xs rounded-md truncate cursor-pointer transition-transform hover:scale-[1.02] border-l-2 shadow-lg ${wish.platform === 'whatsapp' ? 'bg-green-500/20 text-green-300 border-green-500' :
-                                                    wish.platform === 'telegram' ? 'bg-sky-500/20 text-sky-300 border-sky-500' :
-                                                        'bg-purple-500/20 text-purple-200 border-purple-500'
-                                                    }`}
-                                            >
-                                                <span className="font-bold opacity-80">{new Date(wish.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                                <span className="mx-1">•</span>
-                                                <span className="font-medium">{wish.recipient_name}</span>
-                                            </motion.div>
-                                        ))}
-                                    </div>
-
-                                    {/* Add Button on Hover */}
-                                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white">
-                                            <Plus className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </>
-                            )}
-                        </div>
-                    ))}
+            {view === 'month' && (
+                <div className="flex-1 overflow-auto p-6">
+                    <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+                        {DAYS.map(day => (
+                            <div key={day} className="p-4 text-center text-sm font-bold text-gray-400 bg-[#0f0f16] border-b border-white/5 uppercase tracking-wider">
+                                {day}
+                            </div>
+                        ))}
+                        {days.map((day, idx) => (
+                            <div
+                                key={idx}
+                                onClick={() => day && handleDateClick(day)}
+                                className={`min-h-[140px] bg-[#0f0f16]/95 hover:bg-[#151520] transition-colors p-2 border-b border-r border-white/5 relative group cursor-pointer ${!day ? 'bg-[#0a0a0f]' : ''}`}
+                            >
+                                {day && (
+                                    <>
+                                        <div className={`text-sm font-medium mb-2 w-7 h-7 flex items-center justify-center rounded-full ${isSameDay(new Date(currentDate.getFullYear(), currentDate.getMonth(), day), new Date())
+                                            ? 'bg-purple-600 text-white shadow-lg shadow-purple-500/50'
+                                            : 'text-gray-400 group-hover:text-white'
+                                            }`}>
+                                            {day}
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            {getEventsForDay(day).map(wish => (
+                                                <motion.div
+                                                    key={wish.id}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    onClick={(e) => handleEventClick(e, wish)}
+                                                    className={`px-2 py-1.5 text-xs rounded-md truncate cursor-pointer transition-transform hover:scale-[1.02] border-l-2 shadow-lg ${wish.platform === 'whatsapp' ? 'bg-green-500/20 text-green-300 border-green-500' :
+                                                        wish.platform === 'telegram' ? 'bg-sky-500/20 text-sky-300 border-sky-500' :
+                                                            'bg-purple-500/20 text-purple-200 border-purple-500'
+                                                        }`}
+                                                >
+                                                    <span className="font-bold opacity-80">{new Date(wish.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                                    <span className="mx-1">•</span>
+                                                    <span className="font-medium">{wish.recipient_name}</span>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white">
+                                                <Plus className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-            </div>
+            )}
+
+            {view === 'week' && (
+                <div className="flex-1 overflow-auto p-6">
+                    <div className="grid grid-cols-7 gap-px mb-2">
+                        {[...Array(7)].map((_, i) => {
+                            const d = new Date(currentDate);
+                            d.setDate(currentDate.getDate() - currentDate.getDay() + i);
+                            return (
+                                <div key={i} className={`p-4 text-center font-bold uppercase tracking-wider rounded-xl bg-white/5 border border-white/10 ${isSameDay(d, new Date()) ? 'ring-2 ring-purple-500' : ''}`}>
+                                    <div className="text-xs text-gray-500">{DAYS[i]}</div>
+                                    <div className="text-xl text-white">{d.getDate()}</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="grid grid-cols-7 gap-px bg-white/10 border border-white/10 rounded-2xl overflow-hidden shadow-2xl min-h-[600px]">
+                        {[...Array(7)].map((_, i) => {
+                            const d = new Date(currentDate);
+                            d.setDate(currentDate.getDate() - currentDate.getDay() + i);
+                            // We need to use `getEventsForDay` but it expects 'day' number relative to 'currentDate' month...
+                            // Actually `getEventsForDay` in original code used `currentDate.getMonth()`.
+                            // If week spans across months, `getEventsForDay` might fail if we pass just `getDate()`.
+                            // I need to update `getEventsForDay` logic logic or write a custom filter here.
+                            // Custom filter is safer.
+                            const dayEvents = displayEvents.filter(w => isSameDay(new Date(w.scheduled_time), d));
+
+                            return (
+                                <div key={i} className="bg-[#0f0f16]/95 border-r border-white/5 p-2 relative group min-h-[600px]" onClick={() => handleDateClick(d.getDate())}>
+                                    {dayEvents.map(wish => (
+                                        <motion.div
+                                            key={wish.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            onClick={(e) => handleEventClick(e, wish)}
+                                            className={`mb-2 p-3 text-xs rounded-xl border-l-4 shadow-lg cursor-pointer hover:scale-[1.02] transition-all ${wish.platform === 'whatsapp' ? 'bg-green-500/10 border-green-500 text-green-200' :
+                                                wish.platform === 'telegram' ? 'bg-sky-500/10 border-sky-500 text-sky-200' :
+                                                    'bg-purple-500/10 border-purple-500 text-purple-200'
+                                                }`}
+                                        >
+                                            <div className="font-bold text-sm mb-1">{wish.recipient_name}</div>
+                                            <div className="flex items-center opacity-70 mb-2">
+                                                <CalendarIcon className="w-3 h-3 mr-1" />
+                                                {new Date(wish.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </div>
+                                            <div className="bg-black/30 px-2 py-1 rounded inline-block text-[10px] uppercase tracking-wider">{wish.occasion}</div>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {view === 'day' && (
+                <div className="flex-1 overflow-auto p-6">
+                    <div className="max-w-4xl mx-auto bg-[#0f0f16] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
+                        <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+                            <div>
+                                <h3 className="text-3xl font-bold text-white">{currentDate.getDate()}</h3>
+                                <p className="text-purple-400 font-medium uppercase tracking-widest">{DAYS[currentDate.getDay()]}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-gray-400 text-sm">Events</p>
+                                <p className="text-2xl font-bold text-white">
+                                    {displayEvents.filter(w => isSameDay(new Date(w.scheduled_time), currentDate)).length}
+                                </p>
+                            </div>
+                        </div>
+                        <div className="divide-y divide-white/5">
+                            {[...Array(24)].map((_, hour) => {
+                                const dayEvents = displayEvents.filter(w => isSameDay(new Date(w.scheduled_time), currentDate) && new Date(w.scheduled_time).getHours() === hour);
+                                return (
+                                    <div key={hour} className="flex min-h-[100px] group hover:bg-white/[0.02] transition-colors">
+                                        <div className="w-24 p-4 text-right border-r border-white/5">
+                                            <span className="text-sm font-medium text-gray-500">
+                                                {hour === 0 ? '12 AM' : hour < 12 ? `${hour} AM` : hour === 12 ? '12 PM' : `${hour - 12} PM`}
+                                            </span>
+                                        </div>
+                                        <div className="flex-1 p-2 relative">
+                                            {dayEvents.map(wish => (
+                                                <motion.div
+                                                    key={wish.id}
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    onClick={(e) => handleEventClick(e, wish)}
+                                                    className={`mb-2 p-3 rounded-xl border-l-4 shadow-lg cursor-pointer hover:translate-x-1 transition-transform flex justify-between items-center ${wish.platform === 'whatsapp' ? 'bg-green-500/10 border-green-500' :
+                                                        wish.platform === 'telegram' ? 'bg-sky-500/10 border-sky-500' :
+                                                            'bg-purple-500/10 border-purple-500'
+                                                        }`}
+                                                >
+                                                    <div>
+                                                        <div className={`font-bold text-sm ${wish.platform === 'whatsapp' ? 'text-green-300' : wish.platform === 'telegram' ? 'text-sky-300' : 'text-purple-300'
+                                                            }`}>
+                                                            {wish.recipient_name}
+                                                        </div>
+                                                        <div className="text-xs text-gray-400 mt-1 flex items-center">
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-current mr-2 opacity-50" />
+                                                            {wish.occasion}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-2xl font-bold opacity-10 font-mono">
+                                                        {new Date(wish.scheduled_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </div>
+                                                </motion.div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Create Modal */}
             <AnimatePresence>
@@ -299,16 +419,17 @@ export default function CalendarView() {
                                 <CreateWishWizard
                                     loading={loading}
                                     initialData={{
-                                        scheduled_time: selectedDate ? selectedDate.toISOString() : ''
+                                        scheduled_time: selectedDate ? new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().replace('Z', '') : ''
                                     }}
                                     onGenerate={async (formData) => {
+                                        if (loading) return;
                                         setLoading(true);
                                         try {
                                             const apiEndpoint = getApiUrl('/api/schedule');
                                             // Ensure scheduled_time is set
                                             const payload = {
                                                 ...formData,
-                                                scheduled_time: formData.scheduled_time || selectedDate.toISOString()
+                                                scheduled_time: formData.scheduled_time || (selectedDate ? new Date(selectedDate.getTime() - (selectedDate.getTimezoneOffset() * 60000)).toISOString().replace('Z', '') : '')
                                             };
 
                                             const res = await fetch(apiEndpoint, {
@@ -322,7 +443,7 @@ export default function CalendarView() {
 
                                             const data = await res.json();
                                             if (res.ok) {
-                                                alert("Wish scheduled successfully!");
+                                                setSuccessModal({ isOpen: true, data: formData });
                                                 setIsCreateModalOpen(false);
                                                 // Refresh wishes
                                                 const historyRes = await fetch(getApiUrl('/api/scheduled-wishes'), {
@@ -332,11 +453,11 @@ export default function CalendarView() {
                                                     setWishes(await historyRes.json());
                                                 }
                                             } else {
-                                                alert('Error: ' + (data.detail || JSON.stringify(data)));
+                                                showToast(data.detail || 'Failed to schedule wish', 'error');
                                             }
                                         } catch (error) {
                                             console.error(error);
-                                            alert("Failed to schedule wish");
+                                            showToast("Failed to schedule wish", "error");
                                         } finally {
                                             setLoading(false);
                                         }
@@ -431,6 +552,33 @@ export default function CalendarView() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* System Toasts */}
+            <AnimatePresence>
+                {toast && (
+                    <Toast
+                        message={toast.message}
+                        type={toast.type}
+                        onClose={() => setToast(null)}
+                    />
+                )}
+            </AnimatePresence>
+
+            <WishSuccessModal
+                isOpen={successModal.isOpen}
+                onClose={() => setSuccessModal({ isOpen: false, data: null })}
+                onAction={(action) => {
+                    setSuccessModal({ isOpen: false, data: null });
+                    if (action === 'gallery') window.location.href = '/dashboard?tab=gallery';
+                    if (action === 'poster') {
+                        const wishText = successModal.data?.generated_wish || '';
+                        const recipient = successModal.data?.recipient_name || '';
+                        window.location.href = `/poster/build?wish=${encodeURIComponent(wishText)}&recipient=${encodeURIComponent(recipient)}`;
+                    }
+                    if (action === 'create') setIsCreateModalOpen(true);
+                }}
+                data={successModal.data}
+            />
         </div>
     );
 }

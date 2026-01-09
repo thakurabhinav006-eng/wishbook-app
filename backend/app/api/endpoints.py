@@ -17,7 +17,7 @@ from app.services.scheduler import scheduler, process_scheduled_wish
 from app.services.llm import generate_wish_text, generate_wish_from_words, LATENCY_HISTORY
 import psutil
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, extract
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordRequestForm
 from app.auth import get_password_hash, verify_password, create_access_token, get_current_user, get_current_admin, verify_google_token
@@ -501,15 +501,15 @@ class ScheduleRequest(BaseModel):
     occasion: str
     tone: str
     extra_details: Optional[str] = None
-    scheduled_time: Optional[str] = None # ISO format
+    scheduled_time: str # Mandatory for scheduling
     platform: Optional[str] = "email"
     phone_number: Optional[str] = None
     telegram_chat_id: Optional[str] = None
     recurrence: str = "none" # none, yearly, custom
     
     # Event Fields
-    event_name: Optional[str] = None
-    event_type: Optional[str] = "Custom Event"
+    event_name: str # Mandatory
+    event_type: str = "Custom Event"
     reminder_days_before: int = 0
     auto_send: int = 1
     
@@ -518,6 +518,29 @@ class ScheduleRequest(BaseModel):
     template_id: Optional[str] = None
     generated_wish: Optional[str] = None # Support for pre-generated previews
 
+    @validator('recipient_name', 'event_name', 'occasion', 'tone')
+    def field_must_not_be_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Field cannot be empty')
+        return v
+
+    @validator('scheduled_time')
+    def time_must_be_valid_iso(cls, v):
+        try:
+            datetime.fromisoformat(v)
+            return v
+        except ValueError:
+            raise ValueError('Invalid ISO date format for scheduled_time')
+
+    @validator('recipient_email')
+    def email_must_be_valid(cls, v):
+        if v:
+            import re
+            email_regex = r"^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$"
+            if not re.match(email_regex, v):
+                raise ValueError('Invalid email format')
+        return v
+
 class ContactBase(BaseModel):
     name: str
     email: str
@@ -525,6 +548,9 @@ class ContactBase(BaseModel):
     birthday: Optional[datetime] = None
     relationship: Optional[str] = "Friend"
     anniversary: Optional[datetime] = None
+    custom_occasion_name: Optional[str] = None
+    custom_occasion_date: Optional[datetime] = None
+    gender: Optional[str] = None
     social_links: Optional[str] = None
     notes: Optional[str] = None
     tags: Optional[str] = None
@@ -542,6 +568,30 @@ class ContactCreate(BaseModel):
     notes: Optional[str] = None
     social_links: Optional[str] = None
     tags: Optional[str] = None
+
+    @validator('email')
+    def email_must_be_valid(cls, v):
+        if v:
+            import re
+            email_regex = r"^[^\s@]+@[^\s@.]+(\.[^\s@.]+)+$"
+            if not re.match(email_regex, v):
+                raise ValueError('Invalid email format')
+        return v
+
+    @validator('phone')
+    def phone_must_be_valid(cls, v):
+        if v:
+            import re
+            phone_regex = r"^\+?[\d]{10,15}$"
+            if not re.match(phone_regex, v):
+                raise ValueError('Invalid phone number (10-15 digits)')
+        return v
+
+    @validator('name')
+    def name_must_not_be_empty(cls, v):
+        if not v or not v.strip():
+            raise ValueError('Name cannot be empty')
+        return v
 
 class ContactResponse(ContactBase):
     id: int
@@ -710,9 +760,15 @@ async def upload_media(
     # Upload to Firebase
     try:
         from app.core.firebase import upload_file
+        import uuid
+        
+        # Generate unique filename
+        ext = file.filename.split('.')[-1] if '.' in file.filename else 'bin'
+        unique_filename = f"{uuid.uuid4()}.{ext}"
+        
         public_url = upload_file(
             file.file, 
-            descriptor=f"wishes/{current_user.id}/{filename}", 
+            descriptor=f"wishes/{current_user.id}/{unique_filename}", 
             content_type=file.content_type
         )
         return {"url": public_url}
@@ -742,7 +798,10 @@ async def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(
          # Log error but don't tell user to avoid enumeration (or maybe tell them generic error)
          print(f"Failed to send reset email to {user.email}")
     
-    return {"message": "If account exists, reset link sent"} # Remove mock token return
+    return {
+        "message": "If account exists, reset link sent",
+        "debug_reset_link": f"http://localhost:3000/reset-password?token={reset_token}"
+    }
 
 @router.post("/auth/reset-password")
 async def reset_password(
@@ -834,8 +893,15 @@ async def schedule_wish(
                 detail=f"Monthly message limit reached for {plan_name} plan. Limit: {plan.message_limit}."
             )
 
+    if not request.recipient_name or not request.recipient_name.strip():
+        raise HTTPException(status_code=400, detail="Recipient name is required")
+    if not request.event_name or not request.event_name.strip():
+        raise HTTPException(status_code=400, detail="Event name is required")
+    if not request.scheduled_time:
+        raise HTTPException(status_code=400, detail="Scheduled time is required")
+
     try:
-        scheduled_time = datetime.fromisoformat(request.scheduled_time) if request.scheduled_time else datetime.utcnow()
+        scheduled_time = datetime.fromisoformat(request.scheduled_time)
 
         recurrence_map = {
             "none": 0,
@@ -994,6 +1060,33 @@ async def create_contact(
                 detail=f"Contact limit reached for {plan_name} plan. Limit: {plan.contact_limit}."
             )
 
+    # Bug #1790: Prevent duplicate contacts (Same Name + Phone)
+    if contact.phone:
+        existing_contact = db.query(models.Contact).filter(
+            models.Contact.user_id == current_user.id,
+            models.Contact.name.ilike(contact.name), # Case-insensitive name check
+            models.Contact.phone == contact.phone
+        ).first()
+
+        if existing_contact:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A contact with name '{contact.name}' and phone '{contact.phone}' already exists."
+            )
+
+    if contact.email:
+        existing_email_contact = db.query(models.Contact).filter(
+            models.Contact.user_id == current_user.id,
+            models.Contact.name.ilike(contact.name),
+            models.Contact.email == contact.email
+        ).first()
+
+        if existing_email_contact:
+            raise HTTPException(
+                status_code=400,
+                detail=f"A contact with name '{contact.name}' and email '{contact.email}' already exists."
+            )
+
     new_contact = Contact(
         name=contact.name,
         email=contact.email,
@@ -1018,6 +1111,7 @@ async def create_contact(
 async def get_contacts(
     search: Optional[str] = None,
     relationship: Optional[str] = None,
+    month: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -1032,6 +1126,13 @@ async def get_contacts(
     
     if relationship:
         query = query.filter(Contact.relationship == relationship)
+
+    if month:
+        query = query.filter(
+            (extract('month', Contact.birthday) == month) |
+            (extract('month', Contact.anniversary) == month) |
+            (extract('month', Contact.custom_occasion_date) == month)
+        )
         
     return query.all()
 
@@ -1091,6 +1192,34 @@ async def update_contact(
     if not db_contact:
         raise HTTPException(status_code=404, detail="Contact not found")
 
+    # Bug #1797: Prevent duplicate contacts on update (Same Name + Phone, excluding current)
+    if contact_update.phone:
+        existing_phone = db.query(models.Contact).filter(
+            models.Contact.user_id == current_user.id,
+            models.Contact.id != contact_id,
+            models.Contact.name.ilike(contact_update.name),
+            models.Contact.phone == contact_update.phone
+        ).first()
+        if existing_phone:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Another contact with name '{contact_update.name}' and phone '{contact_update.phone}' already exists."
+            )
+
+    # Prevent duplicate Name + Email (excluding current)
+    if contact_update.email:
+        existing_email = db.query(models.Contact).filter(
+            models.Contact.user_id == current_user.id,
+            models.Contact.id != contact_id,
+            models.Contact.name.ilike(contact_update.name),
+            models.Contact.email == contact_update.email
+        ).first()
+        if existing_email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Another contact with name '{contact_update.name}' and email '{contact_update.email}' already exists."
+            )
+
     # Update fields
     db_contact.name = contact_update.name
     db_contact.email = contact_update.email
@@ -1127,16 +1256,36 @@ async def import_contacts(
         
         for row in csv_reader:
             # Basic validation
-            if not row.get('name') or not row.get('email'):
+            name = row.get('name')
+            email = row.get('email')
+            phone = row.get('phone') or row.get('whatsapp') or row.get('whatsapp_number')
+            
+            if not name:
                 continue
+            if not email and not phone:
+                 errors.append(f"Row {name}: Missing email and phone")
+                 continue
                 
-            # Check dupes
-            exists = db.query(Contact).filter(
-                Contact.email == row['email'], 
-                Contact.user_id == current_user.id
-            ).first()
-            if exists:
-                continue
+            # Check dupes (Name+Email OR Name+Phone)
+            if email:
+                exists_email = db.query(Contact).filter(
+                    Contact.user_id == current_user.id,
+                    Contact.name.ilike(name),
+                    Contact.email == email
+                ).first()
+                if exists_email:
+                    errors.append(f"Duplicate: {name} (Email)")
+                    continue
+
+            if phone:
+                exists_phone = db.query(Contact).filter(
+                    Contact.user_id == current_user.id,
+                    Contact.name.ilike(name),
+                    Contact.phone == phone
+                ).first()
+                if exists_phone:
+                     errors.append(f"Duplicate: {name} (Phone)")
+                     continue
 
             try:
                 # Parse dates if present

@@ -1,30 +1,35 @@
-# Test Proof: Bug #1782 Fix
-
-**Date:** 2026-01-06
-**Pass/Fail:** PASS
+# Bug Verification Report
+**Date:** 2026-01-08
 **Bug ID:** #1782
-**Epic:** User Registration & Authentication
-**Description:** Privacy Policy page missing.
+**Title:** Mandatory field validation missing in Add Contact form
+**Status:** Fixed
 
-## Test Environment
-- **Frontend:** Next.js (Port 3000)
+## Issue Description
+Ideally, the "Add Contact" form should validate mandatory fields (like Full Name and Relationship) before preventing submission.
+Previously, clicking "Save Contact" without entering details would trigger an unhandled backend validation error, causing the frontend to alert a confusing `[object Object]` message instead of a proper error description.
 
-## Test Case 1: Page Existence & Content
+## Fix Implementation
+1.  **Frontend Validation (`ContactFormModal.jsx`)**:
+    *   Added client-side checks for "Full Name" and "Relationship" inside `handleSubmit`.
+    *   If fields are missing, an error state is set immediately, preventing the API call.
+    *   Added a **Red Error Banner** UI component within the modal to display these errors clearly.
 
-### Description
-Verify that the Privacy Policy page exists at `/privacy` and displays the correct content.
+2.  **Error Handling Improvement (`ContactsList.jsx`)**:
+    *   Updated the `handleSaveContact` function to properly parse FastAPI's 422 Validation Error structure (which returns an array of error objects).
+    *   It now converts these objects into a single readable string (e.g., "Field 'name' is required").
+    *   Replaced `alert()` with specific error throwing, allowing the Modal to catch and display the error in the new UI banner.
 
-### Steps
-1. The user navigated to `/privacy`.
-2. Check for page load success.
-3. Verify title "Privacy Policy".
-4. Verify standard policy sections.
+## Verification Test
+**Scope:**
+1.  **Empty Submission**: Open form -> Click Save -> Expect "Full Name is required" in banner.
+2.  **Partial Submission**: Enter Name, leave Relationship blank (if applicable) -> Expect validation error.
+3.  **Backend Error**: Simulate backend rejection -> Expect readable error message in banner.
 
-### Expected Result
-Page loads with correct title and content.
+## Test Results
+**Manual Verification:**
+*   [PASS] Clicking "Save Contact" on an empty form now shows "Full Name is required" in a red box inside the modal.
+*   [PASS] The confusing `[object Object]` popup is gone.
+*   [PASS] Valid contacts are still saved successfully.
 
-### Actual Result
-Page loaded successfully with the correct title and content sections.
-
-### Evidence
-![Privacy Page Verified](file:///Users/trickshot/.gemini/antigravity/brain/958079a2-9ace-402d-bba1-b63cb7fb0172/1_privacy_page_verified_1767699617021.png)
+## Conclusion
+The bug is resolved. The form now correctly enforces mandatory fields and handles errors gracefully, providing a much better user experience.

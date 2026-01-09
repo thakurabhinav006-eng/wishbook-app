@@ -27,7 +27,11 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
             }
 
             setStatus('success');
-            setMessage('If an account exists, a reset link has been sent.');
+            if (data.debug_reset_link) {
+                setMessage(data.debug_reset_link);
+            } else {
+                setMessage('If an account exists, a reset link has been sent.');
+            }
 
         } catch (error) {
             setStatus('error');
@@ -94,6 +98,16 @@ export default function ForgotPasswordModal({ isOpen, onClose }) {
                                     >
                                         Back to Login
                                     </button>
+
+                                    {/* Debug Link Display */}
+                                    {message.includes('http') && (
+                                        <div className="mt-4 p-3 bg-purple-500/10 rounded-lg border border-purple-500/20 break-all text-xs text-left">
+                                            <p className="font-bold text-purple-400 mb-1">Debug Link (SMTP Failed):</p>
+                                            <a href={message.split('token=')[1] ? message : '#'} className="text-blue-400 hover:text-blue-300 underline">
+                                                {message}
+                                            </a>
+                                        </div>
+                                    )}
                                 </motion.div>
                             ) : (
                                 <form onSubmit={handleSubmit} className="space-y-6">

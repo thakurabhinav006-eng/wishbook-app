@@ -1,24 +1,41 @@
-import React, { useState } from 'react';
-import { X, Mail, Phone, Calendar, Heart, Globe, Tag, FileText } from 'lucide-react';
+'use client';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { X, Mail, Phone, Calendar, Heart, Globe, Tag, FileText, User, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ContactDetailsModal({ contact, onClose }) {
-    if (!contact) return null;
+    const [mounted, setMounted] = useState(false);
 
-    return (
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
+
+    if (!mounted || !contact) return null;
+
+    return createPortal(
         <AnimatePresence>
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <div
+                className="fixed inset-0 !z-[99999] flex items-center justify-center p-4 isolation-auto"
+                style={{ zIndex: 99999 }}
+            >
+                <div
+                    className="fixed inset-0 bg-black/90 backdrop-blur-md"
+                    style={{ zIndex: -1 }}
+                    onClick={onClose}
+                />
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className="bg-[#121218] border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl"
+                    className="bg-[#121218] border border-white/10 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
                 >
                     {/* Header */}
-                    <div className="relative h-32 bg-gradient-to-r from-purple-900/50 to-blue-900/50">
+                    <div className="relative h-32 bg-gradient-to-r from-purple-900/50 to-blue-900/50 shrink-0">
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors"
+                            className="absolute top-4 right-4 p-2 bg-black/20 hover:bg-black/40 rounded-full text-white transition-colors z-10"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -29,7 +46,7 @@ export default function ContactDetailsModal({ contact, onClose }) {
                         </div>
                     </div>
 
-                    <div className="pt-12 px-8 pb-8 space-y-6">
+                    <div className="pt-12 px-8 pb-8 space-y-6 overflow-y-auto custom-scrollbar">
                         <div>
                             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                                 {contact.name}
@@ -50,6 +67,15 @@ export default function ContactDetailsModal({ contact, onClose }) {
                                     </div>
                                 </div>
                             )}
+                            {contact.gender && (
+                                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
+                                    <User className="w-4 h-4 text-blue-400" />
+                                    <div className="text-sm">
+                                        <div className="text-gray-500 text-xs">Gender</div>
+                                        <div className="text-white">{contact.gender}</div>
+                                    </div>
+                                </div>
+                            )}
                             {contact.birthday && (
                                 <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
                                     <Calendar className="w-4 h-4 text-pink-400" />
@@ -65,6 +91,17 @@ export default function ContactDetailsModal({ contact, onClose }) {
                                     <div className="text-sm">
                                         <div className="text-gray-500 text-xs">Anniversary</div>
                                         <div className="text-white">{new Date(contact.anniversary).toLocaleDateString()}</div>
+                                    </div>
+                                </div>
+                            )}
+                            {contact.custom_occasion_name && (
+                                <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5 col-span-2">
+                                    <Star className="w-4 h-4 text-yellow-400" />
+                                    <div className="text-sm">
+                                        <div className="text-gray-500 text-xs">{contact.custom_occasion_name}</div>
+                                        <div className="text-white">
+                                            {contact.custom_occasion_date ? new Date(contact.custom_occasion_date).toLocaleDateString() : 'No date set'}
+                                        </div>
                                     </div>
                                 </div>
                             )}
@@ -93,6 +130,7 @@ export default function ContactDetailsModal({ contact, onClose }) {
                     </div>
                 </motion.div>
             </div>
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 }

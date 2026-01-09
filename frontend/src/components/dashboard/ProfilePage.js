@@ -56,13 +56,24 @@ export default function ProfilePage() {
     }, [user, token]);
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        if (name === 'mobile_number') {
+            // Allow only numbers and plus
+            if (!/^[0-9+]*$/.test(value)) return;
+        }
+        setFormData({ ...formData, [name]: value });
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setMessage(null);
+
+        if (formData.mobile_number && (formData.mobile_number.length < 10 || formData.mobile_number.length > 15)) {
+            setMessage({ type: 'error', text: 'Mobile number must be between 10 and 15 digits' });
+            setLoading(false);
+            return;
+        }
 
         try {
             const res = await fetch(getApiUrl('/api/users/me'), {
@@ -322,10 +333,10 @@ export default function ProfilePage() {
                                             onChange={handleChange}
                                             className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none transition-colors appearance-none"
                                         >
-                                            <option value="UTC">UTC</option>
-                                            <option value="Asia/Kolkata">IST (Asia/Kolkata)</option>
-                                            <option value="America/New_York">EST (America/New_York)</option>
-                                            <option value="Europe/London">GMT (Europe/London)</option>
+                                            <option value="UTC" className="bg-[#181820] text-white">UTC</option>
+                                            <option value="Asia/Kolkata" className="bg-[#181820] text-white">IST (Asia/Kolkata)</option>
+                                            <option value="America/New_York" className="bg-[#181820] text-white">EST (America/New_York)</option>
+                                            <option value="Europe/London" className="bg-[#181820] text-white">GMT (Europe/London)</option>
                                         </select>
                                     </div>
                                 </div>
@@ -446,9 +457,9 @@ export default function ProfilePage() {
                                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none transition-colors appearance-none"
                                         required
                                     >
-                                        <option value="">Select a plan</option>
+                                        <option value="" className="bg-[#181820] text-white">Select a plan</option>
                                         {plans.filter(p => p.name.toLowerCase() !== user.subscription_plan?.toLowerCase()).map(plan => (
-                                            <option key={plan.id} value={plan.name}>
+                                            <option key={plan.id} value={plan.name} className="bg-[#181820] text-white">
                                                 {plan.name} - ${(plan.price / 100).toFixed(2)} / month
                                             </option>
                                         ))}
@@ -485,9 +496,9 @@ export default function ProfilePage() {
                                         onChange={(e) => setUpgradeData({...upgradeData, paymentMethod: e.target.value})}
                                         className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none transition-colors appearance-none"
                                     >
-                                        <option value="card">Credit/Debit Card</option>
-                                        <option value="upi">UPI</option>
-                                        <option value="netbanking">Net Banking</option>
+                                        <option value="card" className="bg-[#181820] text-white">Credit/Debit Card</option>
+                                        <option value="upi" className="bg-[#181820] text-white">UPI</option>
+                                        <option value="netbanking" className="bg-[#181820] text-white">Net Banking</option>
                                     </select>
                                 </div>
 
