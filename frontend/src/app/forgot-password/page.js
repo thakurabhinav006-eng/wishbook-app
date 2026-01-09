@@ -21,17 +21,20 @@ export default function ForgotPasswordPage() {
             });
             const data = await res.json();
             
-            // We always show success for security, unless network error
+            if (!res.ok) {
+                throw new Error(data.detail || 'An error occurred');
+            }
+            
             setStatus('success');
             setMessage('If an account exists with this email, you will receive a password reset link shortly.');
             
-            // For dev/demo purposes, if a mock token was returned, log it
-            if (data.mock_token) {
-                console.log("DEV: Mock Reset Token:", data.mock_token);
+            // For dev/demo purposes, if a debug link was returned, log it
+            if (data.debug_reset_link) {
+                console.log("DEV: Debug Reset Link:", data.debug_reset_link);
             }
         } catch (error) {
             setStatus('error');
-            setMessage('An unexpected error occurred. Please try again.');
+            setMessage(error.message || 'An unexpected error occurred. Please try again.');
         }
     };
 

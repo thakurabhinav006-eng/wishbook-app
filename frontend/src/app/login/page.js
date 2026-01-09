@@ -156,9 +156,8 @@ const Login = () => {
                         <div className="space-y-2">
                             <div className="flex justify-between items-center ml-1">
                                 <label className="text-sm font-medium text-gray-300">Password</label>
-                                <button type="button" onClick={() => {/* Handle forgot password - possibly a modal or link */}} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
-                                    Forgot Password?
-                                </button>
+
+
                             </div>
                             <div className="relative group">
                                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 group-focus-within:text-purple-400 transition-colors w-5 h-5" />
@@ -177,6 +176,11 @@ const Login = () => {
                                 >
                                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                 </button>
+                            </div>
+                            <div className="flex justify-end mt-1">
+                                <Link href="/forgot-password" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+                                    Forgot Password?
+                                </Link>
                             </div>
                         </div>
 
